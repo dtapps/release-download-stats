@@ -3,7 +3,7 @@ import downloadProxy from "./download-proxy/worker";
 
 interface Env {
   DB: D1Database;
-  STATS_TOKEN: string;
+  STATS_TOKEN?: string;
 }
 
 const JSON_HEADERS = {
