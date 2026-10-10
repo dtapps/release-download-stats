@@ -2,7 +2,7 @@
   "name": "release-download-stats",
   "version": "0.1.0",
   "private": false,
-  "description": "Cached GitHub and CNB release download badges for edge runtimes",
+  "description": "Download proxy with first-party GET request statistics and badges for Cloudflare, EdgeOne, and Alibaba Cloud ESA",
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -10,7 +10,8 @@
     "dev": "wrangler dev",
     "db:migrations:apply": "wrangler d1 migrations apply DB --remote",
     "deploy": "wrangler deploy && npm run db:migrations:apply && wrangler deploy",
-    "deploy:cloudflare": "npm run deploy"
+    "deploy:cloudflare": "npm run deploy",
+    "test:esa": "vitest run tests/esa.test.js"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261010.1",

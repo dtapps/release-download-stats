@@ -2,14 +2,14 @@
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/dtapps/release-download-stats)
 
-一个基于 Cloudflare Workers + D1 的下载中转与自统计徽章服务。**无需预先配置仓库**：第一次访问中转 URL 时自动创建仓库记录并累计请求数，徽章直接读取自有数据库里的计数。
+一个支持 **Cloudflare Workers + D1、EdgeOne Pages + Blob、阿里云 ESA + EdgeKV** 的下载中转与自统计徽章服务。三种适配器都统计经过本服务的 GET 中转请求，不查询 GitHub Releases 或 CNB 的官方下载量；无需预先登记仓库。
 
 点击上方 **Deploy to Cloudflare** 按钮，可以将项目复制到自己的 GitHub 账户，并通过 Cloudflare 部署 Worker 和创建所需的 D1 数据库。`wrangler.toml` 使用不带 `database_id` 的 D1 绑定，由 Wrangler 自动创建资源；部署脚本先部署以确保数据库资源已创建，再应用 D1 migrations，最后重新部署。Worker 还会在统计查询和下载计数前幂等创建所需表和索引，避免部署平台跳过 migrations 时统计直接失效。
 
 
 ## 首页与服务检查
 
-部署完成后直接打开服务域名根路径 `/`，会显示服务说明、当前累计中转请求数、下载中转链接格式、徽章和 JSON 接口用法，以及 D1/Blob 存储连接状态。
+部署完成后直接打开服务域名根路径 `/`，会显示服务说明、当前累计中转请求数、下载中转链接格式、徽章和 JSON 接口用法，以及当前平台的统计存储状态。
 
 - `/`：使用说明和实时存储检查页面。
 - `/health`：JSON 健康检查；存储不可用时返回 HTTP 503。
@@ -21,10 +21,10 @@
 
 - 下载中转请求格式：`https://你的域名/https://github.com/owner/repo/releases/download/v1.0.0/file.zip`
 - 只允许配置在代码中的 HTTPS 来源主机：`github.com`、`cnb.cool`、`gitea.com`、`gitlab.com`、`gitee.com`、`gitcode.com`。
-- 每次 GET 请求将仓库和文件计数写入 D1，然后 302 跳转到源站。
+- 每次 GET 请求将仓库和文件计数写入当前平台的统计存储，然后 302 跳转到源站。
 - HEAD 请求只跳转，不累计。
 - 仓库计数以来源主机和仓库路径为键，首次访问时自动创建记录；无需 `REPOSITORIES`、GitHub Token 或 CNB Token。
-- 徽章和 JSON 接口直接查询 D1，显示的是**经过此中转服务的 GET 请求数**，不是上游平台的下载量，也不能保证文件最终下载完成。
+- 徽章和 JSON 接口直接查询本服务的统计存储，显示的是**经过此中转服务的 GET 请求数**，不是上游平台的下载量，也不能保证文件最终下载完成。
 - 直接访问源站的下载不会计入统计。
 
 ## 徽章与统计接口
@@ -37,7 +37,7 @@
 | `/stats/github.com/owner/repo.json` | GitHub 仓库统计 JSON |
 | `/badge/cnb.cool/namespace/repo` | CNB 仓库自统计徽章 |
 | `/stats/cnb.cool/namespace/repo.json` | CNB 仓库统计 JSON |
-| `/total` 或 `/` | D1 中所有仓库累计请求数之和 |
+| `/total` 或 `/` | 所有仓库累计中转请求数（`/` 返回首页） |
 | `/health` | 健康检查 |
 | `/_stats/repositories` | 私有仓库统计列表 |
 | `/_stats/files` | 私有文件统计列表 |
@@ -54,7 +54,7 @@ README 徽章示例：
 https://download.example.com/https://github.com/dtapps/fnmusic-sync/releases/download/v1.0.0/fnmusic-sync.zip
 ```
 
-仓库路径由中转 URL 自动识别，无需在配置文件中登记仓库。统计接口路径中的主机和仓库名应与中转源 URL 一致。
+仓库路径由中转 URL 自动识别，无需在配置文件中登记仓库。统计接口路径中的主机和仓库名应与中转源 URL 一致。文件身份使用源站主机名和路径；查询参数不参与计数键，但会保留在跳转 URL 中。
 
 ## Cloudflare 部署
 
@@ -193,9 +193,35 @@ EdgeOne 适配器**不需要配置** `REPOSITORIES`、`SYNC_SECRET`、`GITHUB_TO
 
 注意：Blob 目前使用读取后写入的计数方式，极高并发下同时到达的请求可能发生计数覆盖；它统计的是中转 GET 请求次数，不代表用户最终成功下载了文件。
 
-## 其他平台适配器
+## 阿里云 ESA 部署（EdgeKV）
 
-仓库中其他平台适配器和旧 API 统计核心仍保留原有实现；Cloudflare 根目录 Worker 的自统计下载计数模式独立使用 D1，不受 EdgeOne Blob 适配器影响。
+ESA 使用内置 `EdgeKV` API，入口文件为 `esa/handler.js`，采用 ESA 官方支持的 `export default { fetch(request) }` 形式。它是独立的 JavaScript 适配器，不依赖 Cloudflare D1 或 EdgeOne Blob SDK。
+
+### 部署步骤
+
+1. 在阿里云 ESA 控制台进入 **边缘计算和 AI → KV 存储**，创建命名空间 **`release-download-stats`**。ESA EdgeKV 要求提前在控制台创建命名空间，不能像 EdgeOne Blob 一样由 SDK 自动创建。
+2. 打开 ESA **函数和 Pages / 边缘函数**，新建或编辑函数，将 `esa/handler.js` 的完整内容作为函数代码部署。
+3. 按 ESA 控制台的函数配置方式绑定你的业务域名或路由，确保请求路径全部进入该函数。
+4. 发布到生产环境后访问 `/health`，应返回包含 `"storage": "ESA EdgeKV"` 的 JSON；访问根路径 `/` 应显示首页。
+
+### ESA 接口
+
+ESA 与其他适配器使用相同的中转 URL、徽章和 JSON 路径：
+
+| URL | 说明 |
+| --- | --- |
+| `/` | 服务首页 |
+| `/health` | EdgeKV 健康检查 |
+| `/total` | 总请求数徽章 |
+| `/badge/github.com/owner/repo` | 仓库中转请求数徽章 |
+| `/stats/github.com/owner/repo.json` | 仓库统计 JSON |
+| `/https://github.com/owner/repo/releases/download/v1.0.0/file.zip` | 下载中转并统计 GET 请求 |
+
+ESA 使用原生 EdgeKV 的 `get` / `put` API，存储键会转换为安全的哈希键，避免源站路径中的特殊字符违反 EdgeKV 键名限制。EdgeKV 具有最终一致性，当前计数通过读取后写入实现，因此高并发下可能发生计数覆盖；统计故障不会阻断下载跳转。请在 ESA 控制台确认命名空间与函数属于同一个阿里云账号。官方文档：[边缘存储 API](https://help.aliyun.com/zh/edge-security-acceleration/esa/user-guide/edge-storage-api)、[EdgeKV 快速上手](https://help.aliyun.com/zh/edge-security-acceleration/esa/user-guide/get-started-with-edge-kv)。
+
+## 项目说明
+
+Cloudflare、EdgeOne 和 ESA 分别使用各自平台的入口文件与存储 API。根目录 `src/service.ts` 中保留的仓库预配置和上游 API 同步代码属于旧版实现，不是上述三种自统计下载中转适配器的运行入口。新部署请按对应平台章节操作。
 
 ## 本地开发
 
