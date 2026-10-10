@@ -222,7 +222,8 @@ export async function onRequest(context: { request: Request }): Promise<Response
       await increment(`stats:repo:${target.hostname.toLowerCase()}:${repository}`, target.hostname.toLowerCase(), repository);
       await increment("stats:total", "all", "/");
       // File-level counts are maintained separately from repository totals.
-      await increment(`stats:file:${target.hostname.toLowerCase()}:${target.pathname}`, target.hostname.toLowerCase(), target.pathname);\n      await recordRequest(target.hostname.toLowerCase(), repository, target.pathname);
+      await increment(`stats:file:${target.hostname.toLowerCase()}:${target.pathname}`, target.hostname.toLowerCase(), target.pathname);
+      await recordRequest(target.hostname.toLowerCase(), repository, target.pathname);
     } catch (error) {
       // Keep downloads working if statistics storage temporarily fails.
       console.error("Download stats write failed", error);
