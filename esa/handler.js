@@ -122,7 +122,20 @@ async function recordRequest(kv,platform,repository,file){const event={time:new 
 function cutoffFor(period){if(period==="all")return null;if(period==="today")return Date.now()-86400000;if(period==="7d")return Date.now()-604800000;if(period==="30d")return Date.now()-2592000000;return undefined}
 async function requestApi(kv,url,method){const limit=Math.max(1,Math.min(100,Number.parseInt(url.searchParams.get("limit")||"50",10)||50));if(url.pathname==="/history"){const p=(url.searchParams.get("platform")||"").trim().toLowerCase(),r=(url.searchParams.get("repository")||"").trim(),all=await readJson(kv,"requests_history",[]),items=all.filter(x=>(!p||x.platform===p)&&(!r||x.repository===r));return json({limit,offset:0,total:items.length,items:items.slice(0,limit)},200,method)}const period=(url.searchParams.get("period")||"all").toLowerCase(),cutoff=cutoffFor(period);if(cutoff===undefined)return json({error:"Invalid period; use all, today, 7d, or 30d"},400,method);if(cutoff===null){const all=await readJson(kv,"requests_leaderboard",{});return json({period,limit,items:Object.values(all).sort((a,b)=>b.request_count-a.request_count).slice(0,limit)},200,method)}const h=await readJson(kv,"requests_history",[]),m=new Map();for(const x of h){if(Date.parse(x.time)<cutoff)continue;const k=x.platform+"\n"+x.repository,v=m.get(k)||{platform:x.platform,repository:x.repository,request_count:0,last_requested_at:x.time};v.request_count++;if(x.time>v.last_requested_at)v.last_requested_at=x.time;m.set(k,v)}return json({period,limit,items:Array.from(m.values()).sort((a,b)=>b.request_count-a.request_count).slice(0,limit)},200,method)}
 
-async function handleRequest(request) {
+function homepageCaptcha(env) {
+  const ruleId = String(env?.ESA_CAPTCHA_RULE_ID || "").trim();
+  const sceneId = String(env?.ESA_CAPTCHA_SCENE_ID || "").trim();
+  const identity = String(env?.ESA_CAPTCHA_IDENTITY || "").trim();
+  if (!ruleId || !sceneId || !identity) return undefined;
+  return {
+    ruleId,
+    sceneId,
+    identity,
+    region: String(env?.ESA_CAPTCHA_REGION || "cn").trim().toLowerCase() === "sgp" ? "sgp" : "cn",
+  };
+}
+
+async function handleRequest(request, env) {
   const url = new URL(request.url);
   const method = request.method;
   if (method !== "GET" && method !== "HEAD") {
@@ -188,7 +201,7 @@ async function handleRequest(request) {
       if (!storageOk) return json({ error: "Stats storage unavailable" }, 503, method);
       return badgeResponse(renderBadge("proxy requests", formatCount(total), "#1d4ed8"), method);
     }
-    return new Response(method === "HEAD" ? null : renderHomePage({ baseUrl: url.origin, platform: "Alibaba Cloud ESA + EdgeKV", storageOk, totalDownloads: total, requestExplorer: true }), {
+    return new Response(method === "HEAD" ? null : renderHomePage({ baseUrl: url.origin, platform: "Alibaba Cloud ESA + EdgeKV", storageOk, totalDownloads: total, requestExplorer: true, captcha: homepageCaptcha(env) }), {
       status: storageOk ? 200 : 503,
       headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
     });
@@ -273,7 +286,7 @@ function renderBadgeSvg(label, value, color) {
 }
 
 export default {
-  fetch(request) {
-    return handleRequest(request);
+  fetch(request, context, env) {
+    return handleRequest(request, env);
   },
 };
