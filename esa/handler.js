@@ -129,7 +129,11 @@ async function requestApi(kv,url,method){const limit=Math.max(1,Math.min(100,Num
   }
 
   const kv = store();
-  if (url.pathname === "/leaderboard" || url.pathname === "/history") {\n    try { return await requestApi(kv, url, method); } catch (error) { console.error("ESA request explorer query failed", error); return json({ error: "Stats query failed" }, 500, method); }\n  }\n\n  if (url.pathname === "/health") {
+  if (url.pathname === "/leaderboard" || url.pathname === "/history") {
+    try { return await requestApi(kv, url, method); } catch (error) { console.error("ESA request explorer query failed", error); return json({ error: "Stats query failed" }, 500, method); }
+  }
+
+  if (url.pathname === "/health") {
     try {
       await kv.get("total", { type: "text" });
       return json({ ok: true, storage: "ESA EdgeKV", status: "healthy" }, 200, method);
