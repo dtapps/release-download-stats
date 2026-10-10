@@ -4,7 +4,7 @@
 
 一个基于 Cloudflare Workers + D1 的下载中转与自统计徽章服务。**无需预先配置仓库**：第一次访问中转 URL 时自动创建仓库记录并累计请求数，徽章直接读取自有数据库里的计数。
 
-点击上方 **Deploy to Cloudflare** 按钮，可以将项目复制到自己的 GitHub 账户，并通过 Cloudflare 部署 Worker 和创建所需的 D1 数据库。`wrangler.toml` 使用不带 `database_id` 的 D1 绑定，由 Wrangler 自动创建资源；部署脚本先部署以确保数据库资源已创建，再应用 D1 migrations，最后重新部署。
+点击上方 **Deploy to Cloudflare** 按钮，可以将项目复制到自己的 GitHub 账户，并通过 Cloudflare 部署 Worker 和创建所需的 D1 数据库。`wrangler.toml` 使用不带 `database_id` 的 D1 绑定，由 Wrangler 自动创建资源；部署脚本先部署以确保数据库资源已创建，再应用 D1 migrations，最后重新部署。Worker 还会在统计查询和下载计数前幂等创建所需表和索引，避免部署平台跳过 migrations 时统计直接失效。
 
 ## 原理
 
@@ -51,8 +51,9 @@ https://download.example.com/https://github.com/dtapps/fnmusic-sync/releases/dow
 
 1. 点击本页顶部的 **Deploy to Cloudflare** 按钮。
 2. 按页面提示授权 GitHub 并选择项目和资源配置。
-3. 启动部署。部署脚本会先运行 `wrangler d1 migrations apply DB --remote` 初始化数据库表，再部署 Worker。
-4. 部署完成后，可在 Cloudflare Workers 控制台为 Worker 绑定自定义域名。
+3. 启动部署。部署脚本先运行 `wrangler deploy` 创建资源，再执行 `wrangler d1 migrations apply DB --remote` 初始化表，最后重新部署 Worker。
+4. 即使部署平台跳过 migrations，Worker 也会在第一次统计查询或下载计数时尝试创建所需表和索引。
+5. 部署完成后，可在 Cloudflare Workers 控制台为 Worker 绑定自定义域名。
 
 默认不需要设置 `STATS_TOKEN`；未设置时，私有统计接口会拒绝访问，但下载中转、徽章、总计和健康检查不受影响。
 
