@@ -136,7 +136,7 @@ function renderHome(baseUrl, total, storageOk) {
     '</style></head><body><main class="wrap"><section class="hero">',
     '<div class="eyebrow">RELEASE DOWNLOAD STATS</div><h1>下载请求自统计服务</h1>',
     '<p>通过下载中转地址统计 GET 请求次数，并提供徽章和 JSON 接口。统计的是本服务收到的请求，不是 GitHub 或其他源站公布的下载量。</p>',
-    '<span class="pill ' + statusClass + '">' + status + '</span><span class="pill">累计 ' + count + ' 次请求</span>',
+    '<span class="pill ' + statusClass + '">' + status + '</span><span class="pill">运行平台：Alibaba Cloud ESA + EdgeKV</span><span class="pill">累计 ' + count + ' 次请求</span>',
     '</section><section class="grid"><article class="card"><h2>服务状态</h2><div class="metric">' + count + '</div>',
     '<p>每次经过本服务的 GET 中转请求计数一次。新部署且没有下载请求时显示 0 是正常的。</p>',
     '<p><a href="' + base + '/health">健康检查 JSON ↗</a>　<a href="' + base + '/total">总计徽章 ↗</a></p></article>',
