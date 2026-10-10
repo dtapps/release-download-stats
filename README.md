@@ -253,6 +253,25 @@ ESA 使用内置 `EdgeKV` API，入口文件为 `esa/handler.js`，采用 ESA �
 4. 在 ESA 控制台按该项目的部署流程绑定业务域名或路由，并确保所有需要统计的请求路径进入该 Pages 函数。
 5. 发布后访问 `/health`，应返回包含 `"storage": "ESA EdgeKV"` 的 JSON；访问根路径 `/` 应显示首页。
 
+### ESA 首页 AI 验证码（可选）
+
+ESA 首页支持可选的阿里云 ESA AI 验证码。**只影响 ESA 首页，不影响 Cloudflare、EdgeOne 首页，也不会自动给下载中转、徽章或 JSON API 加验证码。**
+
+在 ESA 控制台进入该函数的函数变量配置，按需添加以下变量：
+
+| 变量名 | 必填 | 说明 |
+| --- | --- | --- |
+| `ESA_CAPTCHA_RULE_ID` | 启用时必填 | ESA 验证规则 ID；用于判断是否启用首页验证码 |
+| `ESA_CAPTCHA_SCENE_ID` | 启用时必填 | AI 验证码场景 ID |
+| `ESA_CAPTCHA_IDENTITY` | 启用时必填 | AI 验证码身份标（Identity / prefix） |
+| `ESA_CAPTCHA_REGION` | 否 | 验证码实例所属地域，只能是 `cn` 或 `sgp`；未设置时默认 `cn` |
+
+前三个变量必须都存在且非空，首页才会显示验证码并动态加载阿里云验证码脚本；其中任意一个未设置时，首页保持原样，不加载验证码脚本。规则 ID 仅作为启用开关，前端初始化实际使用场景 ID 和身份标。
+
+**地域不要根据访问者 IP 自动判断。** `ESA_CAPTCHA_REGION` 指的是你在阿里云验证码配置中使用的验证码实例地域，不是访问者所在国家/地区。应与该验证码实例配置保持一致：中国内地实例设为 `cn`，新加坡实例设为 `sgp`。用户 IP 可能受 VPN、代理、移动网络出口和 IP 地理数据库误差影响；自动按 IP 切换可能导致前端区域与验证码实例不匹配，验证失败。若要切换地域，请按实际创建的验证码实例修改函数变量并重新发布。
+
+官方说明：[ESA AI 验证码快速上手](https://www.alibabacloud.com/help/zh/edge-security-acceleration/esa/user-guide/get-started-with-ai-captchas)。
+
 ### ESA 接口
 
 ESA 与其他适配器使用相同的中转 URL、徽章和 JSON 路径：
