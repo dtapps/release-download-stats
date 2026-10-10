@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { handleRequest, SNAPSHOT_KEY } from "../src/service";
+import { handleRequest, SNAPSHOT_KEY, syncStats } from "../src/service";
 import type { KVStore, RepositorySnapshot, StatsConfig } from "../src/types";
 
 function memoryKV(initial: Record<string, string> = {}): KVStore {

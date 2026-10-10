@@ -1,6 +1,6 @@
 # Cloudflare Download Proxy
 
-A standalone Worker that counts download requests and redirects to public release assets hosted on the allowlisted providers. It does not require a provider token for public assets.
+This proxy is integrated into the main Cloudflare Worker at `platforms/cloudflare/worker.ts`. It shares the existing domain with the download badges and uses the same D1 database as the badge statistics source.
 
 ## Allowed hosts
 
@@ -22,39 +22,27 @@ https://download.example.com/https://cnb.cool/dtapp/certflow/-/releases/download
 https://download.example.com/https://github.com/dtapps/certflow/releases/download/v1.0.0/certflow.zip
 ```
 
-The Worker counts GET requests and returns a 302 redirect. HEAD requests redirect without incrementing counters. Counts mean requests through this proxy, not verified completed downloads.
+GET requests increment D1 counters and return a 302 redirect. HEAD requests redirect without incrementing counters. Counts mean requests through this proxy, not verified completed downloads.
 
-The repository key uses the first two path segments (for example `/dtapp/certflow`). The file key uses the exact source hostname and pathname. Query strings are preserved when redirecting but excluded from the file key; fragments are not sent to the Worker by browsers.
+The repository key uses the first two path segments (for example `/dtapp/certflow`). The file key uses the exact source hostname and pathname. Query strings are preserved when redirecting but excluded from the file key.
 
-## Deploy
+## D1 setup
 
-From the repository root:
+Create a D1 database and place its ID in the root `wrangler.toml` under the `DB` binding. Initialize the schema from the repository root:
 
 ```sh
 npx wrangler d1 create release-download-stats
+npx wrangler d1 execute release-download-stats --remote --file=platforms/cloudflare/download-proxy/schema.sql
+npx wrangler secret put STATS_TOKEN
+npx wrangler secret put SYNC_SECRET
+npm run deploy:cloudflare
 ```
 
-Copy the returned database ID to `wrangler.download-proxy.toml`, then initialize the database:
-
-```sh
-npx wrangler d1 execute release-download-stats --remote --file=platforms/cloudflare/download-proxy/schema.sql --config=wrangler.download-proxy.toml
-```
-
-Set a separate secret for the private statistics endpoints:
-
-```sh
-npx wrangler secret put STATS_TOKEN --config=wrangler.download-proxy.toml
-```
-
-Deploy:
-
-```sh
-npx wrangler deploy --config=wrangler.download-proxy.toml
-```
-
-Bind a custom domain to this Worker in the Cloudflare dashboard after confirming the generated workers.dev URL works.
+The root Worker also needs its existing KV namespace ID configured in `wrangler.toml`. Replace all `REPLACE_WITH_...` placeholders before deployment.
 
 ## Query stats
+
+The private endpoints require the `STATS_TOKEN` secret:
 
 ```sh
 curl -H "Authorization: Bearer $STATS_TOKEN" \
@@ -66,11 +54,9 @@ curl -G -H "Authorization: Bearer $STATS_TOKEN" \
   'https://download.example.com/_stats/files?limit=100'
 ```
 
-The stats endpoints require `STATS_TOKEN`. Keep it in a secret manager or shell environment; do not commit it.
-
 ## Important behavior
 
-- Query parameters are excluded from the statistics key but retained in the redirect destination.
-- URL fragments are not transmitted in HTTP requests and cannot be recovered by the Worker.
-- If D1 writes fail, the Worker logs the failure and still redirects, so an occasional request may not be counted.
-- Requests made directly to the origin host do not pass through this Worker and cannot be counted.
+- The existing SVG badges and JSON statistics remain available. Cloudflare badge counts use the first-party D1 counters, not the providers' download count APIs.
+- Only requests passing through this Worker can be counted. Direct requests to the origin are not included.
+- Query parameters do not affect the statistics key but are retained in the redirect.
+- If D1 writes fail, the Worker logs the error and still redirects; that request may not be counted.

@@ -28,9 +28,17 @@ async function syncOne(kv: KVStore, config: StatsConfig, target: RepositoryTarge
   }
 
   try {
-    const stats = target.provider === "github"
-      ? await fetchGitHubDownloads(target.repository, config.githubToken, fetch, config.githubApiBase)
-      : await fetchCNBDownloads(target.repository, config.cnbToken);
+    // When configured, the first-party counter is authoritative. Provider APIs
+    // are only a fallback for deployments that do not supply their own counter.
+    const stats = config.getOwnDownloadCount
+      ? {
+          downloads: await config.getOwnDownloadCount(target),
+          updatedAt: new Date().toISOString(),
+          source: "First-party download proxy (D1)",
+        }
+      : target.provider === "github"
+        ? await fetchGitHubDownloads(target.repository, config.githubToken, fetch, config.githubApiBase)
+        : await fetchCNBDownloads(target.repository, config.cnbToken);
     const snapshot: RepositorySnapshot = {
       schemaVersion: 1,
       id: target.id,
@@ -43,7 +51,8 @@ async function syncOne(kv: KVStore, config: StatsConfig, target: RepositoryTarge
     await kv.put(key, JSON.stringify(snapshot), { expirationTtl: config.cacheTtlSeconds ?? 60 * 60 * 24 * 30 });
     return snapshot;
   } catch (error) {
-    if (previous && typeof previous.downloads === "number") {
+    if (previous && typeof previous.downloads === "number" &&
+      (!config.getOwnDownloadCount || previous.source === "First-party download proxy (D1)")) {
       return { ...previous, warning: String(error) };
     }
     throw new Error(`${target.id} (${target.provider}:${target.repository}): ${String(error)}`);
