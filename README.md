@@ -4,7 +4,7 @@
 
 一个基于 Cloudflare Workers + D1 的下载中转与自统计徽章服务。**无需预先配置仓库**：第一次访问中转 URL 时自动创建仓库记录并累计请求数，徽章直接读取自有数据库里的计数。
 
-点击上方 **Deploy to Cloudflare** 按钮，可以将项目复制到自己的 GitHub 账户，并通过 Cloudflare 部署 Worker 和创建所需的 D1 数据库。部署脚本会先应用 D1 migrations，自动初始化数据表。
+点击上方 **Deploy to Cloudflare** 按钮，可以将项目复制到自己的 GitHub 账户，并通过 Cloudflare 部署 Worker 和创建所需的 D1 数据库。`wrangler.toml` 使用不带 `database_id` 的 D1 绑定，由 Wrangler 自动创建资源；部署脚本先部署以确保数据库资源已创建，再应用 D1 migrations，最后重新部署。
 
 ## 原理
 
@@ -72,7 +72,7 @@ https://download.example.com/https://github.com/dtapps/fnmusic-sync/releases/dow
    npx wrangler d1 create release-download-stats
    ```
 
-3. 确保 `wrangler.toml` 中的 D1 绑定配置指向你创建的数据库，并填写该数据库的 `database_id`。
+3. 确保 `wrangler.toml` 中的 D1 绑定配置指向你创建的数据库，并填写该数据库的 `database_id`（如果已有数据库）。
 4. 安装、检查并部署（部署命令会自动应用 migrations）：
 
    ```sh
