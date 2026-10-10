@@ -14,16 +14,15 @@ const store: KVStore = {
   put: (key, value) => STATS_KV.put(key, value),
 };
 
-declare const REPOSITORY: string;
+declare const REPOSITORIES: string;
 declare const GITHUB_TOKEN: string | undefined;
 declare const CNB_TOKEN: string | undefined;
-declare const CNB_RELEASES_URL: string | undefined;
 declare const GITHUB_API_BASE: string | undefined;
 declare const CACHE_TTL_SECONDS: string | undefined;
 declare const SYNC_SECRET: string | undefined;
 
 function env(): RuntimeEnv {
-  return { REPOSITORY, GITHUB_TOKEN, CNB_TOKEN, CNB_RELEASES_URL, GITHUB_API_BASE, CACHE_TTL_SECONDS, SYNC_SECRET };
+  return { REPOSITORIES, GITHUB_TOKEN, CNB_TOKEN, GITHUB_API_BASE, CACHE_TTL_SECONDS, SYNC_SECRET };
 }
 
 export async function onRequest(context: { request: Request }): Promise<Response> {
