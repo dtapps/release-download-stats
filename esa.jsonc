@@ -1,0 +1,5 @@
+{
+  "entry": "./esa/handler.js",
+  "installCommand": "",
+  "buildCommand": ""
+}

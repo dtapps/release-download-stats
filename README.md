@@ -200,9 +200,10 @@ ESA 使用内置 `EdgeKV` API，入口文件为 `esa/handler.js`，采用 ESA �
 ### 部署步骤
 
 1. 在阿里云 ESA 控制台进入 **边缘计算和 AI → KV 存储**，创建命名空间 **`release-download-stats`**。ESA EdgeKV 要求提前在控制台创建命名空间，不能像 EdgeOne Blob 一样由 SDK 自动创建。
-2. 打开 ESA **函数和 Pages / 边缘函数**，新建或编辑函数，将 `esa/handler.js` 的完整内容作为函数代码部署。
-3. 按 ESA 控制台的函数配置方式绑定你的业务域名或路由，确保请求路径全部进入该函数。
-4. 发布到生产环境后访问 `/health`，应返回包含 `"storage": "ESA EdgeKV"` 的 JSON；访问根路径 `/` 应显示首页。
+2. 在 ESA **函数和 Pages** 中选择“导入 GitHub 仓库”，连接 `dtapps/release-download-stats`，生产分支选择 `master`。
+3. 仓库根目录的 `esa.jsonc` 已将函数入口配置为 `./esa/handler.js`，并跳过不需要的依赖安装与构建步骤。ESA 会依据该配置加载入口，无需手动粘贴代码。若控制台已有同名构建配置，`esa.jsonc` 的优先级更高。
+4. 在 ESA 控制台按该项目的部署流程绑定业务域名或路由，并确保所有需要统计的请求路径进入该 Pages 函数。
+5. 发布后访问 `/health`，应返回包含 `"storage": "ESA EdgeKV"` 的 JSON；访问根路径 `/` 应显示首页。
 
 ### ESA 接口
 
