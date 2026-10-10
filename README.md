@@ -39,16 +39,16 @@
 
 在 `/shields.json` 上同时传入 `platform` 和 `repository`，即可只显示指定仓库的中转请求数。平台必须是 `github.com`、`cnb.cool`、`gitea.com`、`gitlab.com`、`gitee.com` 或 `gitcode.com`；仓库格式为 `/owner/repo`（CNB 等平台的 namespace/repo 同样适用）。
 
-例如，只显示 `dtapps/fnmusic-sync` 的请求数：
+例如，只显示 CNB 仓库 `dtapp/certflow` 的请求数：
 
 ```md
-![fnmusic-sync 下载请求数](https://img.shields.io/endpoint?url=https%3A%2F%2Fdownload.example.com%2Fshields.json%3Fplatform%3Dgithub.com%26repository%3D%252Fdtapps%252Ffnmusic-sync)
+![certflow 下载请求数](https://img.shields.io/endpoint?url=https%3A%2F%2Fdownload.example.com%2Fshields.json%3Fplatform%3Dcnb.cool%26repository%3D%252Fdtapp%252Fcertflow)
 ```
 
 JSON 原始接口：
 
 ```text
-https://download.example.com/shields.json?platform=github.com&repository=%2Fdtapps%2Ffnmusic-sync
+https://download.example.com/shields.json?platform=cnb.cool&repository=%2Fdtapp%2Fcertflow
 ```
 
 不传这两个参数时仍然返回全站总数；只传其中一个或格式不合法时返回 HTTP 400。单仓库计数同样只统计经过本服务中转的 GET 请求。
