@@ -124,7 +124,10 @@ export async function onRequest(context: { request: Request }): Promise<Response
   const request = context.request;
   const url = new URL(request.url);
 
-  if (url.pathname === "/leaderboard" || url.pathname === "/history") {\n    try { return await requestApi(url); } catch (error) { console.error("Request explorer query failed", error); return json({ error: "Stats query failed" }, 500); }\n  }\n  if (url.pathname === "/health") {
+  if (url.pathname === "/leaderboard" || url.pathname === "/history") {
+    try { return await requestApi(url); } catch (error) { console.error("Request explorer query failed", error); return json({ error: "Stats query failed" }, 500); }
+  }
+  if (url.pathname === "/health") {
     try {
       await blob.get("stats:total", { type: "text", consistency: "strong" });
       return json({ ok: true, storage: "EdgeOne Blob", status: "healthy" });
