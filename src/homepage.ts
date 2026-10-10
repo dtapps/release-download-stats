@@ -15,7 +15,10 @@ function escapeHtml(value: string): string {
 }
 
 export function renderHomePage(options: HomePageOptions): string {
-  const base = escapeHtml(options.baseUrl.replace(/\/$/, ""));
+  const rawBase = options.baseUrl.replace(/\/$/, "");
+  const base = escapeHtml(rawBase);
+  const shieldsJsonUrl = `${rawBase}/shields.json`;
+  const shieldsBadgeUrl = `https://img.shields.io/endpoint?url=${encodeURIComponent(shieldsJsonUrl)}`;
   const total = new Intl.NumberFormat("en-US").format(options.totalDownloads);
   const statusText = options.storageOk ? "统计存储连接正常" : "统计存储连接异常";
   const statusClass = options.storageOk ? "ok" : "error";
@@ -81,7 +84,17 @@ export function renderHomePage(options: HomePageOptions): string {
         <p>徽章显示经过此服务的中转请求数，不代表文件已完整下载。</p>
       </article>
       <article class="card">
-        <h2>3. 查看单仓库数据</h2>
+        <h2>3. 使用 Shields.io 徽章</h2>
+        <p>如果不想让 README 直接引用自己的统计域名作为图片，可以使用 Shields.io 的 endpoint 徽章。它会读取本服务提供的 <code>/shields.json</code>。</p>
+        <p>徽章预览：</p>
+        <p><a href="${escapeHtml(shieldsBadgeUrl)}"><img src="${escapeHtml(shieldsBadgeUrl)}" alt="下载请求数"></a></p>
+        <p>复制到 README：</p>
+        <pre>![下载请求数](${shieldsBadgeUrl})</pre>
+        <p>JSON 接口：<a href="${escapeHtml(shieldsJsonUrl)}">${escapeHtml(shieldsJsonUrl)} ↗</a></p>
+        <p>标签和颜色可通过 JSON 地址参数自定义，例如 <code>?label=Downloads&amp;color=brightgreen</code>；也支持中文标签和 <code>#409EFF</code> 颜色。</p>
+      </article>
+      <article class="card">
+        <h2>4. 查看单仓库数据</h2>
         <p>JSON 接口可供脚本、仪表盘或其他程序读取：</p>
         <pre>${base}/stats/github.com/owner/repo.json</pre>
         <div class="links">
