@@ -1,6 +1,6 @@
 interface Env {
   DB: D1Database;
-  STATS_TOKEN: string;
+  STATS_TOKEN?: string;
 }
 
 const ALLOWED_HOSTS = new Set([
