@@ -6,7 +6,7 @@ compatibility_date = "2026-10-01"
 REPOSITORIES = '[{"id":"fnmusic-sync","provider":"github","repository":"dtapps/fnmusic-sync"}]'
 # Add more repository objects to the JSON array above.
 # Set secrets with: wrangler secret put GITHUB_TOKEN / SYNC_SECRET
-# CNB targets require a verified releasesUrl field in each JSON object.
+# CNB targets use https://api.cnb.cool automatically; set CNB_TOKEN only when required.
 
 [[kv_namespaces]]
 binding = "STATS_KV"
