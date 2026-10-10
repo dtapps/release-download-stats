@@ -1,4 +1,5 @@
 import { formatCount, renderBadge } from "../../src/badge";
+import { ensureStatsSchema } from "../../src/cloudflare-schema";
 import downloadProxy from "./download-proxy/worker";
 
 interface Env {
@@ -59,6 +60,7 @@ export default {
 
     if (url.pathname === "/" || url.pathname === "/total") {
       try {
+        await ensureStatsSchema(env.DB);
         const result = await env.DB.prepare(
           "SELECT COALESCE(SUM(request_count), 0) AS total_downloads FROM repository_stats",
         ).first<{ total_downloads: number }>();
@@ -73,6 +75,7 @@ export default {
     const target = parseRepositoryBadge(url.pathname);
     if (target) {
       try {
+        await ensureStatsSchema(env.DB);
         const result = await env.DB.prepare(
           "SELECT request_count, first_requested_at, last_requested_at FROM repository_stats WHERE platform = ? AND repository = ?",
         ).bind(target.platform, target.repository).first<{
