@@ -60,14 +60,14 @@ describe("ESA download proxy", () => {
 
     const total = await handler.fetch(new Request("https://stats.example.com/total"));
     expect(total.headers.get("content-type")).toContain("image/svg+xml");
-    expect(values.get("total")).toContain('"downloads": 2');
+    expect(values.get("total")).toContain('"downloads":2');
 
     const head = await handler.fetch(new Request(
       "https://stats.example.com/https://github.com/owner/repo/releases/download/v1/file.zip",
       { method: "HEAD" },
     ));
     expect(head.status).toBe(302);
-    expect(values.get("total")).toContain('"downloads": 2');
+    expect(values.get("total")).toContain('"downloads":2');
   });
 
   it("rejects unsupported source hosts", async () => {
