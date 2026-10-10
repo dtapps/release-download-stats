@@ -1,27 +1,20 @@
 import type { FetchLike, ProviderStats } from "./types";
 
-/**
- * CNB documents release assets with download_count, but endpoint paths and
- * response envelopes can vary by API operation. Configure the exact Releases
- * API URL copied from CNB's current OpenAPI docs instead of guessing a route.
- *
- * This parser accepts an array or a common envelope containing a release array.
- * Pagination must be handled by the endpoint or added using CNB's verified API.
- */
+const CNB_API_BASE = "https://api.cnb.cool";
 type JsonObject = Record<string, unknown>;
 
 function isObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function findArray(payload: unknown): unknown[] | null {
+function findReleaseArray(payload: unknown): unknown[] | null {
   if (Array.isArray(payload)) return payload;
   if (!isObject(payload)) return null;
   for (const key of ["releases", "items", "results", "data"]) {
     const value = payload[key];
     if (Array.isArray(value)) return value;
     if (isObject(value)) {
-      const nested = findArray(value);
+      const nested = findReleaseArray(value);
       if (nested) return nested;
     }
   }
@@ -34,36 +27,90 @@ function sumReleaseAssets(release: unknown): number {
   for (const asset of release.assets) {
     if (!isObject(asset)) continue;
     const count = asset.download_count;
-    if (typeof count === "number" && Number.isFinite(count) && count >= 0) {
-      total += Math.trunc(count);
-    }
+    if (typeof count === "number" && Number.isFinite(count) && count >= 0) total += Math.trunc(count);
   }
   return total;
 }
 
+function getTotalCount(headers: Headers): number | undefined {
+  // CNB's list APIs return pagination metadata in response headers. Support
+  // common header names; if none is present, use page length to find the end.
+  for (const name of ["X-Total-Count", "X-Total", "Total-Count", "X-Total-Elements"]) {
+    const raw = headers.get(name);
+    if (raw && /^\d+$/.test(raw.trim())) return Number(raw);
+  }
+  return undefined;
+}
+
+function nextLink(headers: Headers): string | null {
+  const link = headers.get("Link") ?? headers.get("link");
+  if (!link) return null;
+  const match = link.match(/<([^>]+)>\s*;\s*rel="?next"?/i);
+  return match?.[1] ?? null;
+}
+
+/**
+ * CNB API base is fixed at https://api.cnb.cool.
+ * ListReleases is GET /{repo}/-/releases with page/page_size pagination.
+ */
 export async function fetchCNBDownloads(
-  releasesUrl: string,
+  repository: string,
   token: string | undefined,
   fetcher: FetchLike = fetch,
 ): Promise<ProviderStats> {
-  if (!releasesUrl) throw new Error("CNB_RELEASES_URL must be set to the verified CNB Releases API endpoint");
-  const url = new URL(releasesUrl);
-  if (url.protocol !== "https:") throw new Error("CNB_RELEASES_URL must use HTTPS");
+  const parts = repository.replace(/^\/+|\/+$/g, "").split("/");
+  if (parts.length < 2 || parts.some((part) => !part || part === "." || part === "..")) {
+    throw new Error("CNB repository must use namespace/repository path format");
+  }
 
   const headers = new Headers({ Accept: "application/json" });
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  const response = await fetcher(url, { headers });
-  if (!response.ok) throw new Error(`CNB API returned HTTP ${response.status}`);
 
-  const payload: unknown = await response.json();
-  const releases = findArray(payload);
-  if (!releases) {
-    throw new Error("Unexpected CNB response: configure the Releases API endpoint whose response contains a release array");
+  const encodedPath = parts.map(encodeURIComponent).join("/");
+  let url = new URL(`/${encodedPath}/-/releases`, CNB_API_BASE);
+  url.searchParams.set("page", "1");
+  url.searchParams.set("page_size", "100");
+
+  let page = 1;
+  let totalDownloads = 0;
+  let expectedTotal: number | undefined;
+  while (true) {
+    const response = await fetcher(url, { headers });
+    if (!response.ok) throw new Error(`CNB ListReleases returned HTTP ${response.status} on page ${page}`);
+
+    const releases = findReleaseArray(await response.json());
+    if (!releases) throw new Error("Unexpected CNB ListReleases response: expected a release array");
+    if (expectedTotal === undefined) expectedTotal = getTotalCount(response.headers);
+
+    for (const release of releases) totalDownloads += sumReleaseAssets(release);
+
+    const next = nextLink(response.headers);
+    if (next) {
+      const nextUrl = new URL(next, CNB_API_BASE);
+      if (nextUrl.origin !== CNB_API_BASE) throw new Error("CNB pagination link points outside api.cnb.cool");
+      url = nextUrl;
+    } else if (expectedTotal !== undefined) {
+      const seen = page * 100;
+      if (seen >= expectedTotal || releases.length === 0) break;
+      page += 1;
+      url = new URL(`/${encodedPath}/-/releases`, CNB_API_BASE);
+      url.searchParams.set("page", String(page));
+      url.searchParams.set("page_size", "100");
+    } else if (releases.length >= 100) {
+      page += 1;
+      if (page > 100) throw new Error("CNB release pagination exceeded 100 pages; refusing a potentially incomplete total");
+      url = new URL(`/${encodedPath}/-/releases`, CNB_API_BASE);
+      url.searchParams.set("page", String(page));
+      url.searchParams.set("page_size", "100");
+    } else {
+      break;
+    }
+    if (page > 100) throw new Error("CNB release pagination exceeded 100 pages; refusing a potentially incomplete total");
   }
 
   return {
-    downloads: releases.reduce<number>((sum, release) => sum + sumReleaseAssets(release), 0),
+    downloads: totalDownloads,
     updatedAt: new Date().toISOString(),
-    source: "CNB Releases API",
+    source: "CNB ListReleases API",
   };
 }
