@@ -88,7 +88,7 @@ https://download.example.com/https://github.com/dtapps/fnmusic-sync/releases/dow
 <summary>方式 B：命令行手动部署（推荐用于排错）</summary>
 
 
-需要本机安装 Node.js 22 或兼容版本，并从 GitHub 克隆你自己的仓库：
+需要本机安装最新稳定版 Node.js（与 CI 一样使用最新发行版），并从 GitHub 克隆你自己的仓库：
 
 ```sh
 git clone https://github.com/你的账号/release-download-stats.git
@@ -182,7 +182,7 @@ Blob 适配器使用强一致读取，尽量确保同步完成后立即读取到
 
 ## 本地开发
 
-需要 Node.js 22 或兼容版本。
+需要最新稳定版 Node.js。CI 使用 `actions/setup-node` 的 `node-version: latest` 自动选择最新发行版，并在运行日志中打印实际的 Node.js 和 npm 版本。
 
 ```sh
 npm install
