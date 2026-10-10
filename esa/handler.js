@@ -136,13 +136,28 @@ async function handleRequest(request) {
 
   if (url.pathname === "/shields.json") {
     try {
-      const value = await readCounter(kv, "total");
+      const platform = (url.searchParams.get("platform") || "").trim().toLowerCase();
+      const repositoryParam = (url.searchParams.get("repository") || "").trim();
+      let downloads;
+      if (platform || repositoryParam) {
+        const match = repositoryParam.match(/^\/?([^/]+)\/([^/]+)\/?$/);
+        if (!ALLOWED_HOSTS.has(platform) || !match || [match[1], match[2]].some(function (part) { return part === "." || part === ".."; })) {
+          return json({ error: "Invalid repository; provide platform and repository, e.g. platform=github.com&repository=/owner/repo" }, 400, method);
+        }
+        const repository = "/" + match[1] + "/" + match[2];
+        const key = await hashKey("repo", platform + "\n" + repository);
+        const value = await readCounter(kv, key);
+        downloads = value ? value.downloads : 0;
+      } else {
+        const value = await readCounter(kv, "total");
+        downloads = value ? value.downloads : 0;
+      }
       const label = (url.searchParams.get("label") || "下载请求数").trim().slice(0, 80) || "下载请求数";
       const requestedColor = (url.searchParams.get("color") || "blue").trim();
       const color = /^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}|[a-zA-Z][a-zA-Z0-9-]{0,31})$/.test(requestedColor)
         ? requestedColor
         : "blue";
-      return json({ schemaVersion: 1, label: label, message: formatCount(value ? value.downloads : 0), color: color }, 200, method);
+      return json({ schemaVersion: 1, label: label, message: formatCount(downloads), color: color }, 200, method);
     } catch (error) {
       console.error("ESA Shields JSON query failed", error);
       return json({ error: "Stats storage unavailable" }, 503, method);
