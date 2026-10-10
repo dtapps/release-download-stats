@@ -5,12 +5,17 @@ compatibility_date = "2026-10-01"
 [vars]
 REPOSITORIES = '[{"id":"fnmusic-sync","provider":"github","repository":"dtapps/fnmusic-sync"}]'
 # Add more repository objects to the JSON array above.
-# Set secrets with: wrangler secret put GITHUB_TOKEN / SYNC_SECRET
-# CNB targets use https://api.cnb.cool automatically; set CNB_TOKEN only when required.
+# Badge counts use the first-party D1 download-proxy counters.
+# Set STATS_TOKEN and SYNC_SECRET with: wrangler secret put STATS_TOKEN / SYNC_SECRET
 
 [[kv_namespaces]]
 binding = "STATS_KV"
 id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "release-download-stats"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
 
 [triggers]
 crons = ["17 * * * *"]
