@@ -168,7 +168,7 @@ EdgeOne 适配器使用 `@edgeone/pages-blob` 持久化统计快照，不再依�
 
    ```sh
    curl -X POST \
-     -H "Authorization: Bearer \${SYNC_SECRET}" \
+     -H "Authorization: Bearer $SYNC_SECRET" \
      https://你的域名/sync
    ```
 
