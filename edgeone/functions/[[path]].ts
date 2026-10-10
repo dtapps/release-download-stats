@@ -1,17 +1,21 @@
+import { getStore } from "@edgeone/pages-blob";
 import { handleRequest, syncStats } from "../../src/service";
 import { readConfig, type RuntimeEnv } from "../../src/config";
 import type { KVStore } from "../../src/types";
 
-// Bind a Makers KV namespace to the variable name STATS_KV in the project.
-// EdgeOne Makers documents get(key, {type:"text"}) and put(key, value).
-declare const STATS_KV: {
-  get(key: string, options?: { type: string }): Promise<string | null>;
-  put(key: string, value: string): Promise<void>;
-};
+// Blob 命名空间会在首次访问时自动创建，不需要申请或绑定 KV。
+// 使用强一致读取，避免同步完成后徽章仍读到旧缓存。
+const blob = getStore({ name: "release-download-stats", consistency: "strong" });
 
 const store: KVStore = {
-  get: (key) => STATS_KV.get(key, { type: "text" }),
-  put: (key, value) => STATS_KV.put(key, value),
+  get: async (key) => {
+    const value = await blob.get(key, { type: "text", consistency: "strong" });
+    return typeof value === "string" ? value : null;
+  },
+  // Blob 不支持 KV 的 expirationTtl；统计快照由后续同步覆盖更新。
+  put: async (key, value) => {
+    await blob.set(key, value);
+  },
 };
 
 declare const REPOSITORIES: string;
