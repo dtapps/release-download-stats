@@ -6,7 +6,7 @@
 
 - 使用一个 `REPOSITORIES` JSON 配置同时指定多个仓库。
 - 每个仓库使用独立 ID、独立 KV 缓存、独立徽章 URL，不会把不同仓库的下载量混在一起。
-- 支持 GitHub Releases；CNB 需要填写从官方 OpenAPI 确认的 Releases API 地址。
+- 支持 GitHub Releases 和 CNB Releases；CNB API 基础地址固定为 `https://api.cnb.cool`，使用官方 `ListReleases` 接口路径自动查询。
 - 提供单仓库徽章、单仓库 JSON、全部仓库列表和总下载量徽章。
 - 徽章请求只读 KV 缓存；定时任务或 `POST /sync` 负责刷新数据。
 - 不依赖 SQL 数据库。
@@ -112,7 +112,7 @@ GitHub 仓库示例：
    npx wrangler secret put SYNC_SECRET
    ```
 
-   若配置 CNB 仓库，还需要设置 `CNB_TOKEN`（如接口需要）。CNB API URL 放在 `REPOSITORIES` 的 `releasesUrl` 字段中；确认该 URL 不是包含秘密 Token 的 URL。
+   若配置需要鉴权的 CNB 仓库，还需要设置 `CNB_TOKEN`。CNB API 基础地址和 Releases 路径由程序固定处理，无需配置 URL。
 
 5. 安装、检查和部署：
 
@@ -144,7 +144,7 @@ GitHub 仓库示例：
 ## 统计规则和已知限制
 
 - GitHub 统计分页读取 Release，并汇总非草稿 Release 的附件 `download_count`。
-- CNB 适配器目前要求配置已验证的 API 地址，并解析返回的 Release 数组；**CNB 分页遍历尚未实现**，如果接口只返回一页，结果会不完整。
+- CNB 适配器使用官方 `ListReleases` 路径，尝试根据响应分页头或每页数量遍历 Release；如果 CNB 实际响应使用不同的分页头格式，应以真实接口响应为准调整。
 - 一个仓库同步失败不会覆盖该仓库上一次成功的缓存值；首次同步失败的仓库会在汇总快照中标记警告。
 - 未配置的仓库 ID 返回 404，不会意外显示其他仓库的数字。
 
