@@ -36,28 +36,6 @@ function formatCount(value) {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
-function renderBadge(label, value, color) {
-  const safeLabel = escapeHtml(label);
-  const safeValue = escapeHtml(value);
-  const labelWidth = Math.max(70, safeLabel.length * 6.7 + 12);
-  const valueWidth = Math.max(32, safeValue.length * 6.7 + 12);
-  const valueX = labelWidth;
-  const width = labelWidth + valueWidth;
-  return '<svg xmlns="http://www.w3.org/2000/svg" width="' + width +
-    '" height="20" role="img" aria-label="' + safeLabel + ': ' + safeValue + '">' +
-    '<title>' + safeLabel + ': ' + safeValue + '</title>' +
-    '<linearGradient id="s" x2="0" y2="100%">' +
-    '<stop offset="0" stop-color="#bbb" stop-opacity=".1"/>' +
-    '<stop offset="1" stop-opacity=".1"/></linearGradient>' +
-    '<clipPath id="r"><rect width="' + width + '" height="20" rx="3" fill="#fff"/></clipPath>' +
-    '<g clip-path="url(#r)"><rect width="' + labelWidth + '" height="20" fill="#555"/>' +
-    '<rect x="' + valueX + '" width="' + valueWidth + '" height="20" fill="' + color + '"/>' +
-    '<rect width="' + width + '" height="20" fill="url(#s)"/></g>' +
-    '<g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,sans-serif" font-size="11">' +
-    '<text x="' + (labelWidth / 2) + '" y="14">' + safeLabel + '</text>' +
-    '<text x="' + (valueX + valueWidth / 2) + '" y="14">' + safeValue + '</text></g></svg>';
-}
-
 function badgeResponse(svg, method) {
   return new Response(method === "HEAD" ? null : svg, {
     headers: {
