@@ -61,7 +61,9 @@ https://download.example.com/https://github.com/dtapps/fnmusic-sync/releases/dow
 
 如果不想点击 Deploy 按钮创建一份新的 GitHub 仓库，可以在 Cloudflare 直接连接你已有的仓库。
 
-#### 方式 A：Cloudflare Dashboard 连接 Git 仓库
+<details>
+<summary>方式 A：Cloudflare Dashboard 连接 Git 仓库</summary>
+
 
 1. 打开 Cloudflare Dashboard → **Workers & Pages** → **Create**，选择连接 Git 仓库的选项。
 2. 授权 GitHub，并选择你已有的 `release-download-stats` 仓库（或你自己的 fork）。
@@ -71,14 +73,18 @@ https://download.example.com/https://github.com/dtapps/fnmusic-sync/releases/dow
    - **Build output directory**：留空；这是 Worker，不是静态网站。
 4. 确认仓库根目录的 `wrangler.toml` 中包含 `DB` 绑定，且不要手动填写虚假的 `database_id`。本项目要求 Wrangler `4.45.0` 或更新版本，首次部署时会根据 `database_name` 自动创建 D1 资源。
 5. 启动部署。项目的 `npm run deploy` 会按顺序执行：部署 Worker 并创建资源 → 应用 D1 migrations → 再部署 Worker。
-6. 部署完成后，在 Worker 的 **Settings → Domains & Routes** 中添加你的域名，例如 `rds.dtapp.net`。
+6. 部署完成后，在 Worker 的 **Settings → Domains & Routes** 中添加你的域名，例如 `download.example.com`。
 7. 验证：
    - 打开 `https://你的域名/health`，应返回 `{"ok": true}`。
    - 打开 `https://你的域名/stats/cnb.cool/dtapp/fnmusic-sync.json`，应返回统计 JSON，而不是 `Stats query failed`。
 
 > 注意：如果你的 Cloudflare 构建环境不允许运行 Wrangler 部署命令，使用下面的 CLI 方式。不要把 Build output directory 填成 `dist`，也不要把本项目当成 Pages 静态站点部署。
 
-#### 方式 B：命令行手动部署（推荐用于排错）
+</details>
+
+<details>
+<summary>方式 B：命令行手动部署（推荐用于排错）</summary>
+
 
 需要本机安装 Node.js 22 或兼容版本，并从 GitHub 克隆你自己的仓库：
 
@@ -104,6 +110,8 @@ npm run deploy
 ```sh
 npx wrangler secret put STATS_TOKEN
 ```
+
+</details>
 
 #### 检查 D1 是否初始化
 
