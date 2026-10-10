@@ -1,6 +1,10 @@
 # Release Download Stats
 
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/dtapps/release-download-stats)
+
 一个基于 Cloudflare Workers + D1 的下载中转与自统计徽章服务。**无需预先配置仓库**：第一次访问中转 URL 时自动创建仓库记录并累计请求数，徽章直接读取自有数据库里的计数。
+
+点击上方 **Deploy to Cloudflare** 按钮，可以将项目复制到自己的 GitHub 账户，并通过 Cloudflare 部署 Worker 和创建所需的 D1 数据库。部署脚本会先应用 D1 migrations，自动初始化数据表。
 
 ## 原理
 
@@ -43,36 +47,46 @@ https://download.example.com/https://github.com/dtapps/fnmusic-sync/releases/dow
 
 ## Cloudflare 部署
 
-1. 创建 D1 数据库：
+### 一键部署（推荐）
+
+1. 点击本页顶部的 **Deploy to Cloudflare** 按钮。
+2. 按页面提示授权 GitHub 并选择项目和资源配置。
+3. 启动部署。部署脚本会先运行 `wrangler d1 migrations apply DB --remote` 初始化数据库表，再部署 Worker。
+4. 部署完成后，可在 Cloudflare Workers 控制台为 Worker 绑定自定义域名。
+
+默认不需要设置 `STATS_TOKEN`；未设置时，私有统计接口会拒绝访问，但下载中转、徽章、总计和健康检查不受影响。
+
+### 命令行部署（可选）
+
+如果要部署到自己的 Cloudflare 账户：
+
+1. 登录 Wrangler：
+
+   ```sh
+   npx wrangler login
+   ```
+
+2. 创建 D1 数据库：
 
    ```sh
    npx wrangler d1 create release-download-stats
    ```
 
-2. 把创建结果中的 database ID 填入根目录 `wrangler.toml` 的 `database_id`，替换 `REPLACE_WITH_D1_DATABASE_ID`。
-
-3. 初始化数据表：
-
-   ```sh
-   npx wrangler d1 execute release-download-stats --remote --file=platforms/cloudflare/download-proxy/schema.sql
-   ```
-
-4. 设置私有统计接口密钥：
-
-   ```sh
-   npx wrangler secret put STATS_TOKEN
-   ```
-
-5. 安装、检查并部署：
+3. 将返回的 database ID 填入根目录 `wrangler.toml`，替换全零占位 ID。
+4. 安装、检查并部署（部署命令会自动应用 migrations）：
 
    ```sh
    npm install
    npm run typecheck
    npm test
-   npm run deploy:cloudflare
+   npm run deploy
    ```
 
-6. 在 Cloudflare 控制台将自定义域名绑定到这个 Worker。
+5. 如需使用私有统计接口，再设置密钥：
+
+   ```sh
+   npx wrangler secret put STATS_TOKEN
+   ```
 
 私有统计接口调用示例：
 
