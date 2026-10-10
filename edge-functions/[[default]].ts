@@ -120,13 +120,27 @@ export async function onRequest(context: { request: Request }): Promise<Response
 
   if (url.pathname === "/shields.json") {
     try {
-      const total = await readCounter("stats:total");
+      const platform = (url.searchParams.get("platform") ?? "").trim().toLowerCase();
+      const repositoryParam = (url.searchParams.get("repository") ?? "").trim();
+      let downloads: number;
+      if (platform || repositoryParam) {
+        const match = repositoryParam.match(/^\/?([^/]+)\/([^/]+)\/?$/);
+        if (!ALLOWED_HOSTS.has(platform) || !match || [match[1], match[2]].some(part => part === "." || part === "..")) {
+          return json({ error: "Invalid repository; provide platform and repository, e.g. platform=github.com&repository=/owner/repo" }, 400);
+        }
+        const repository = `/${match[1]}/${match[2]}`;
+        const value = await readCounter(`stats:repo:${platform}:${repository}`);
+        downloads = value?.downloads ?? 0;
+      } else {
+        const total = await readCounter("stats:total");
+        downloads = total?.downloads ?? 0;
+      }
       const label = (url.searchParams.get("label") ?? "下载请求数").trim().slice(0, 80) || "下载请求数";
       const requestedColor = (url.searchParams.get("color") ?? "blue").trim();
       const color = /^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}|[a-zA-Z][a-zA-Z0-9-]{0,31})$/.test(requestedColor)
         ? requestedColor
         : "blue";
-      return json({ schemaVersion: 1, label, message: formatCount(total?.downloads ?? 0), color });
+      return json({ schemaVersion: 1, label, message: formatCount(downloads), color });
     } catch (error) {
       console.error("Shields JSON query failed", error);
       return json({ error: "Stats query failed" }, 500);
