@@ -34,6 +34,15 @@ describe("ESA download proxy", () => {
     expect(await health.json()).toMatchObject({ ok: true, storage: "ESA EdgeKV" });
   });
 
+  it("accepts CAPTCHA verification POST on the homepage URI", async () => {
+    const response = await handler.fetch(new Request(
+      "https://stats.example.com/?captcha_verify_param=test-token",
+      { method: "POST", headers: { "content-type": "application/json" }, body: "{}" },
+    ));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+  });
+
   it("counts GET requests by host and path while ignoring query strings", async () => {
     const first = await handler.fetch(new Request(
       "https://stats.example.com/https://github.com/owner/repo/releases/download/v1/file.zip?token=one",
