@@ -21,7 +21,8 @@ export interface RepositorySnapshot {
   id: string;
   provider: Provider;
   repository: string;
-  downloads: number;
+  /** null means this target has not yet completed a successful sync. */
+  downloads: number | null;
   updatedAt: string;
   source: string;
   warning?: string;
