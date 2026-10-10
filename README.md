@@ -1,6 +1,6 @@
 # Release Download Stats
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/dtapps/release-download-stats)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https%3A%2F%2Fgithub.com%2Fdtapps%2Frelease-download-stats)
 
 一个基于 Cloudflare Workers + D1 的下载中转与自统计徽章服务。**无需预先配置仓库**：第一次访问中转 URL 时自动创建仓库记录并累计请求数，徽章直接读取自有数据库里的计数。
 
