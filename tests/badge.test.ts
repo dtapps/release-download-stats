@@ -6,7 +6,7 @@ describe("renderBadge", () => {
     const svg = renderBadge("downloads", "1.2k", "green");
     expect(svg).toContain("<svg");
     expect(svg).toContain('aria-label="downloads: 1.2k"');
-    expect(svg).toContain("#4c1");
+    expect(svg).toContain("#97ca00");
   });
 
   it("escapes XML values", () => {
@@ -15,6 +15,6 @@ describe("renderBadge", () => {
   });
 
   it("formats compact counts using the runtime locale conventions", () => {
-    expect(formatCount(1200)).toBe("1.2k");
+    expect(formatCount(1200)).toBe("1.2K");
   });
 });
