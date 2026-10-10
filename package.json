@@ -9,7 +9,7 @@
     "test": "vitest run",
     "dev": "wrangler dev",
     "db:migrations:apply": "wrangler d1 migrations apply DB --remote",
-    "deploy": "npm run db:migrations:apply && wrangler deploy",
+    "deploy": "wrangler deploy && npm run db:migrations:apply && wrangler deploy",
     "deploy:cloudflare": "npm run deploy"
   },
   "devDependencies": {
