@@ -85,12 +85,16 @@ export function renderHomePage(options: HomePageOptions): string {
       </article>
       <article class="card">
         <h2>3. 本服务原生徽章预览</h2>
-        <p>这是本服务直接生成的徽章，不依赖 Shields.io。下面使用 CNB 仓库 <code>dtapp/certflow</code> 作为示例。</p>
-        <p>徽章预览：</p>
-        <p><a href="${base}/badge/cnb.cool/dtapp/certflow"><img src="${base}/badge/cnb.cool/dtapp/certflow" alt="certflow 下载请求数"></a></p>
+        <p>下面对比同名的 GitHub 与 CNB 仓库。徽章由本服务直接生成，不依赖 Shields.io。</p>
+        <h3>GitHub：dtapps/certflow</h3>
+        <p><a href="${base}/badge/github.com/dtapps/certflow"><img src="${base}/badge/github.com/dtapps/certflow" alt="GitHub certflow 下载请求数"></a></p>
         <p>复制到 README：</p>
-        <pre>![certflow 下载请求数](${rawBase}/badge/cnb.cool/dtapp/certflow)</pre>
-        <p class="muted">此徽章显示经过当前部署服务中转的请求数；如果该仓库还没有中转请求，显示 0 属于正常情况。</p>
+        <pre>![GitHub certflow 下载请求数](${rawBase}/badge/github.com/dtapps/certflow)</pre>
+        <h3>CNB：dtapp/certflow</h3>
+        <p><a href="${base}/badge/cnb.cool/dtapp/certflow"><img src="${base}/badge/cnb.cool/dtapp/certflow" alt="CNB certflow 下载请求数"></a></p>
+        <p>复制到 README：</p>
+        <pre>![CNB certflow 下载请求数](${rawBase}/badge/cnb.cool/dtapp/certflow)</pre>
+        <p class="muted">两边分别统计经过当前服务中转的请求数，互不合并；没有中转请求时显示 0 属于正常情况。</p>
       </article>
       <article class="card">
         <h2>4. 使用 Shields.io 徽章</h2>
@@ -101,11 +105,15 @@ export function renderHomePage(options: HomePageOptions): string {
         <pre>![下载请求数](${shieldsBadgeUrl})</pre>
         <p>JSON 接口：<a href="${escapeHtml(shieldsJsonUrl)}">${escapeHtml(shieldsJsonUrl)} ↗</a></p>
         <p>标签和颜色可通过 JSON 地址参数自定义，例如 <code>?label=Downloads&amp;color=brightgreen</code>；也支持中文标签和 <code>#409EFF</code> 颜色。</p>
-        <p>单仓库 Shields.io 徽章预览（同样使用 <code>dtapp/certflow</code>）：</p>
-        <p><a href="https://img.shields.io/endpoint?url=${encodeURIComponent(rawBase + "/shields.json?platform=cnb.cool&repository=/dtapp/certflow")}"><img src="https://img.shields.io/endpoint?url=${encodeURIComponent(rawBase + "/shields.json?platform=cnb.cool&repository=/dtapp/certflow")}" alt="certflow Shields.io 下载请求数"></a></p>
-        <p>对应 Markdown：</p>
-        <pre>![certflow 下载请求数](https://img.shields.io/endpoint?url=${encodeURIComponent(rawBase + "/shields.json?platform=cnb.cool&repository=/dtapp/certflow")})</pre>
-        <p>单仓库 JSON 接口：<a href="${escapeHtml(rawBase + "/shields.json?platform=cnb.cool&repository=%2Fdtapp%2Fcertflow")}">${escapeHtml(rawBase + "/shields.json?platform=cnb.cool&repository=%2Fdtapp%2Fcertflow")} ↗</a></p>
+        <p>单仓库 Shields.io 徽章预览，对比 GitHub 与 CNB 的 <code>certflow</code> 仓库：</p>
+        <h3>GitHub：dtapps/certflow</h3>
+        <p><a href="https://img.shields.io/endpoint?url=${encodeURIComponent(rawBase + "/shields.json?platform=github.com&repository=/dtapps/certflow")}"><img src="https://img.shields.io/endpoint?url=${encodeURIComponent(rawBase + "/shields.json?platform=github.com&repository=/dtapps/certflow")}" alt="GitHub certflow Shields.io 下载请求数"></a></p>
+        <pre>![GitHub certflow 下载请求数](https://img.shields.io/endpoint?url=${encodeURIComponent(rawBase + "/shields.json?platform=github.com&repository=/dtapps/certflow")})</pre>
+        <p>JSON：<a href="${escapeHtml(rawBase + "/shields.json?platform=github.com&repository=%2Fdtapps%2Fcertflow")}">${escapeHtml(rawBase + "/shields.json?platform=github.com&repository=%2Fdtapps%2Fcertflow")} ↗</a></p>
+        <h3>CNB：dtapp/certflow</h3>
+        <p><a href="https://img.shields.io/endpoint?url=${encodeURIComponent(rawBase + "/shields.json?platform=cnb.cool&repository=/dtapp/certflow")}"><img src="https://img.shields.io/endpoint?url=${encodeURIComponent(rawBase + "/shields.json?platform=cnb.cool&repository=/dtapp/certflow")}" alt="CNB certflow Shields.io 下载请求数"></a></p>
+        <pre>![CNB certflow 下载请求数](https://img.shields.io/endpoint?url=${encodeURIComponent(rawBase + "/shields.json?platform=cnb.cool&repository=/dtapp/certflow")})</pre>
+        <p>JSON：<a href="${escapeHtml(rawBase + "/shields.json?platform=cnb.cool&repository=%2Fdtapp%2Fcertflow")}">${escapeHtml(rawBase + "/shields.json?platform=cnb.cool&repository=%2Fdtapp%2Fcertflow")} ↗</a></p>
       </article>
       <article class="card">
         <h2>4. 查看单仓库数据</h2>
