@@ -82,7 +82,8 @@ async function incrementStats(
 ): Promise<void> {
   await ensureStatsSchema(env.DB);
 
-  // A single D1 batch keeps the repository and file counters in one operation.
+  const now = new Date().toISOString();
+  // Update counters and append a history row atomically.
   await env.DB.batch([
     env.DB.prepare(`
       INSERT INTO repository_stats (platform, repository, request_count)
@@ -99,6 +100,12 @@ async function incrementStats(
         request_count = file_stats.request_count + 1,
         last_requested_at = datetime('now')
     `).bind(platform, repository, resourcePath),
+
+    env.DB.prepare(`
+      INSERT INTO request_history
+        (requested_at, platform, repository, resource_path, method, status_code)
+      VALUES (?, ?, ?, ?, 'GET', 302)
+    `).bind(now, platform, repository, resourcePath),
   ]);
 }
 
@@ -113,6 +120,65 @@ async function handleStats(request: Request, url: URL, env: Env): Promise<Respon
   const limit = Number.isFinite(rawLimit)
     ? Math.max(1, Math.min(1000, Math.trunc(rawLimit)))
     : 100;
+
+  if (url.pathname === "/leaderboard") {
+    const period = (url.searchParams.get("period") ?? "all").toLowerCase();
+    const periodDays: Record<string, number | null> = { all: null, today: 1, "7d": 7, "30d": 30 };
+    if (!(period in periodDays)) {
+      return json({ error: "Invalid period; use all, today, 7d, or 30d" }, 400);
+    }
+    const rawLimit = Number(url.searchParams.get("limit") ?? "10");
+    const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(100, Math.trunc(rawLimit))) : 10;
+    const days = periodDays[period];
+    const cutoff = days === null ? null : new Date(Date.now() - days * 86400000).toISOString();
+    let result;
+    if (cutoff) {
+      result = await env.DB.prepare(`
+        SELECT platform, repository, COUNT(*) AS request_count,
+               MAX(requested_at) AS last_requested_at
+        FROM request_history
+        WHERE requested_at >= ?
+        GROUP BY platform, repository
+        ORDER BY request_count DESC, last_requested_at DESC
+        LIMIT ?
+      `).bind(cutoff, limit).all();
+    } else {
+      result = await env.DB.prepare(`
+        SELECT platform, repository, request_count,
+               last_requested_at
+        FROM repository_stats
+        ORDER BY request_count DESC, last_requested_at DESC
+        LIMIT ?
+      `).bind(limit).all();
+    }
+    return json({ period, limit, items: result.results });
+  }
+
+  if (url.pathname === "/history") {
+    const rawLimit = Number(url.searchParams.get("limit") ?? "50");
+    const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(100, Math.trunc(rawLimit))) : 50;
+    const rawOffset = Number(url.searchParams.get("offset") ?? "0");
+    const offset = Number.isFinite(rawOffset) ? Math.max(0, Math.min(1000000, Math.trunc(rawOffset))) : 0;
+    const platform = (url.searchParams.get("platform") ?? "").trim().toLowerCase();
+    const repository = (url.searchParams.get("repository") ?? "").trim();
+    const conditions: string[] = [];
+    const values: (string | number)[] = [];
+    if (platform) { conditions.push("platform = ?"); values.push(platform); }
+    if (repository) { conditions.push("repository = ?"); values.push(repository); }
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    const result = await env.DB.prepare(`
+      SELECT id, requested_at AS time, platform, repository, resource_path AS file,
+             method, status_code AS status
+      FROM request_history
+      ${where}
+      ORDER BY requested_at DESC, id DESC
+      LIMIT ? OFFSET ?
+    `).bind(...values, limit, offset).all();
+    const count = await env.DB.prepare(`
+      SELECT COUNT(*) AS total FROM request_history ${where}
+    `).bind(...values).first<{ total: number }>();
+    return json({ limit, offset, total: Number(count?.total ?? 0), items: result.results });
+  }
 
   if (url.pathname === "/_stats/repositories") {
     const result = await env.DB.prepare(`
