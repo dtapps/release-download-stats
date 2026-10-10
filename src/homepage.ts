@@ -45,6 +45,7 @@ export function renderHomePage(options: HomePageOptions): string {
     pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#101827;color:#e5edf9;border-radius:10px;padding:14px;font-size:12px;line-height:1.65}
     a{color:#1d4ed8;text-decoration:none}a:hover{text-decoration:underline}.links{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px}
     .wide{grid-column:1/-1}.foot{text-align:center;color:#8a95a8;font-size:12px;padding-top:24px}
+    .table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:9px 8px;border-bottom:1px solid #e8edf5;white-space:nowrap}th{color:#69778d;font-weight:650}.controls{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.controls select,.controls button{border:1px solid #d5deeb;border-radius:8px;background:#fff;padding:8px 10px;color:#172033}.controls button{cursor:pointer}.empty{color:#7a879b;padding:16px 0}
     @media(max-width:680px){body{padding:18px 12px 36px}.hero{padding:24px 20px}.grid{grid-template-columns:1fr}.wide{grid-column:auto}.card{padding:18px}}
   </style>
 </head>
@@ -125,6 +126,22 @@ export function renderHomePage(options: HomePageOptions): string {
         <p class="muted">示例路径中的 owner/repo 需要替换成实际仓库；未出现过的仓库会返回 0。</p>
       </article>
       <article class="card wide">
+        <h2>5. 请求排行榜与最近记录</h2>
+        <p>排行榜根据已记录的中转请求统计；最近记录用于排查请求时间、仓库和文件路径。302 表示本服务已发起跳转，不代表源站下载成功。</p>
+        <div class="controls">
+          <label>排行榜时间范围
+            <select id="leaderboard-period"><option value="all">累计</option><option value="today">近 24 小时</option><option value="7d">近 7 天</option><option value="30d">近 30 天</option></select>
+          </label>
+          <button type="button" id="refresh-stats">刷新数据</button>
+        </div>
+        <h3>请求排行榜 Top 10</h3>
+        <div class="table-wrap"><table><thead><tr><th>#</th><th>平台</th><th>仓库</th><th>请求数</th><th>最近请求</th></tr></thead><tbody id="leaderboard-body"><tr><td colspan="5">正在加载…</td></tr></tbody></table></div>
+        <h3>最近 50 条请求</h3>
+        <div class="table-wrap"><table><thead><tr><th>时间</th><th>平台</th><th>仓库</th><th>文件路径</th><th>方法</th><th>状态</th></tr></thead><tbody id="history-body"><tr><td colspan="6">正在加载…</td></tr></tbody></table></div>
+        <p class="muted">历史记录当前仅记录 GET 中转请求；不保存 IP、Cookie 或请求头。数据由新版本开始累积，旧的累计数据不会补生成历史记录。</p>
+        <p>JSON 接口：<a href="${base}/leaderboard?period=all&limit=10">/leaderboard</a> · <a href="${base}/history?limit=50">/history</a></p>
+      </article>
+      <article class="card wide">
         <h2>统计规则与存储状态</h2>
         <ul>
           <li>只统计经过本服务中转地址的 GET 请求，每次请求计数一次。</li>
@@ -137,6 +154,35 @@ export function renderHomePage(options: HomePageOptions): string {
     </section>
     <footer class="foot">Release Download Stats · 自统计下载中转服务</footer>
   </main>
+  <script>
+    const escapeCell = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    const formatTime = (value) => value ? new Date(value).toLocaleString() : "—";
+    async function loadLeaderboard() {
+      const body = document.getElementById("leaderboard-body");
+      body.innerHTML = '<tr><td colspan="5">正在加载…</td></tr>';
+      try {
+        const period = document.getElementById("leaderboard-period").value;
+        const response = await fetch("/leaderboard?period=" + encodeURIComponent(period) + "&limit=10", {cache:"no-store"});
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        body.innerHTML = data.items.length ? data.items.map((item, i) => '<tr><td>'+(i+1)+'</td><td>'+escapeCell(item.platform)+'</td><td>'+escapeCell(item.repository)+'</td><td>'+escapeCell(item.request_count)+'</td><td>'+escapeCell(formatTime(item.last_requested_at))+'</td></tr>').join("") : '<tr><td colspan="5" class="empty">暂无请求数据</td></tr>';
+      } catch (error) { body.innerHTML = '<tr><td colspan="5">加载失败：'+escapeCell(error.message)+'</td></tr>'; }
+    }
+    async function loadHistory() {
+      const body = document.getElementById("history-body");
+      body.innerHTML = '<tr><td colspan="6">正在加载…</td></tr>';
+      try {
+        const response = await fetch("/history?limit=50", {cache:"no-store"});
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        body.innerHTML = data.items.length ? data.items.map(item => '<tr><td>'+escapeCell(formatTime(item.time))+'</td><td>'+escapeCell(item.platform)+'</td><td>'+escapeCell(item.repository)+'</td><td title="'+escapeCell(item.file)+'">'+escapeCell(item.file)+'</td><td>'+escapeCell(item.method)+'</td><td>'+escapeCell(item.status)+'</td></tr>').join("") : '<tr><td colspan="6" class="empty">暂无请求记录（新版本部署后才开始记录）</td></tr>';
+      } catch (error) { body.innerHTML = '<tr><td colspan="6">加载失败：'+escapeCell(error.message)+'</td></tr>'; }
+    }
+    async function refreshStats() { await Promise.all([loadLeaderboard(), loadHistory()]); }
+    document.getElementById("leaderboard-period").addEventListener("change", loadLeaderboard);
+    document.getElementById("refresh-stats").addEventListener("click", refreshStats);
+    refreshStats();
+  </script>
 </body>
 </html>`;
 }
