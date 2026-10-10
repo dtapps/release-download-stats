@@ -43,7 +43,7 @@ async function syncOne(kv: KVStore, config: StatsConfig, target: RepositoryTarge
     await kv.put(key, JSON.stringify(snapshot), { expirationTtl: config.cacheTtlSeconds ?? 60 * 60 * 24 * 30 });
     return snapshot;
   } catch (error) {
-    if (previous) {
+    if (previous && typeof previous.downloads === "number") {
       return { ...previous, warning: String(error) };
     }
     throw new Error(`${target.id} (${target.provider}:${target.repository}): ${String(error)}`);
@@ -51,12 +51,12 @@ async function syncOne(kv: KVStore, config: StatsConfig, target: RepositoryTarge
 }
 
 export async function syncStats(kv: KVStore, config: StatsConfig): Promise<StatsSnapshot> {
-  const results = await Promise.all(config.repositories.map(async (target) => {
+  const results: RepositorySnapshot[] = await Promise.all(config.repositories.map(async (target) => {
     try {
       return await syncOne(kv, config, target);
     } catch (error) {
       return {
-        schemaVersion: 1 as const,
+        schemaVersion: 1,
         id: target.id,
         provider: target.provider,
         repository: target.repository,
@@ -72,7 +72,7 @@ export async function syncStats(kv: KVStore, config: StatsConfig): Promise<Stats
   const snapshot: StatsSnapshot = {
     schemaVersion: 1,
     updatedAt: new Date().toISOString(),
-    repositories: results as RepositorySnapshot[],
+    repositories: results,
     totalDownloads: results.reduce((sum, item) => sum + (typeof item.downloads === "number" ? item.downloads : 0), 0),
     warnings,
   };
@@ -123,7 +123,7 @@ export async function handleRequest(request: Request, kv: KVStore, config: Servi
     }));
     const ready = snapshots.filter((item): item is RepositorySnapshot => item !== null && typeof item.downloads === "number");
     if (ready.length === 0) return json({ error: "尚未同步统计数据，请调用 POST /sync" }, 503);
-    const total = ready.reduce((sum, item) => sum + item.downloads, 0);
+    const total = ready.reduce((sum, item) => sum + item.downloads!, 0);
     const svg = renderBadge("total downloads", formatCount(total), "blue");
     return new Response(request.method === "HEAD" ? null : svg, { headers: badgeHeaders() });
   }
@@ -140,6 +140,7 @@ export async function handleRequest(request: Request, kv: KVStore, config: Servi
     try { snapshot = JSON.parse(value) as RepositorySnapshot; }
     catch { return json({ error: "缓存数据损坏" }, 500); }
     if (statsMatch) return json(snapshot);
+    if (typeof snapshot.downloads !== "number") return json({ error: `仓库 ${id} 尚未成功同步` }, 503);
     const label = target.provider === "github" ? "GitHub downloads" : "CNB downloads";
     const svg = renderBadge(label, formatCount(snapshot.downloads), target.provider === "cnb" ? "green" : "blue");
     return new Response(request.method === "HEAD" ? null : svg, { headers: badgeHeaders() });
