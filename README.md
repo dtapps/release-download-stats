@@ -147,9 +147,38 @@ curl -G -H "Authorization: Bearer $STATS_TOKEN" \
 - D1 写入失败时会记录日志，但仍然跳转到源站，避免统计故障阻断下载。
 - `/total` 是所有已统计仓库请求数的合计；同一个用户多次请求会被多次计数。
 
+## EdgeOne 部署（Blob 存储）
+
+EdgeOne 适配器使用 `@edgeone/pages-blob` 持久化统计快照，不再依赖需要申请和绑定的 KV。Blob 免费版提供 1 GB 存储空间；首次调用 `getStore("release-download-stats")` 时会自动创建命名空间。
+
+1. 将仓库部署到支持 Node.js SDK 的 EdgeOne Pages / Makers Functions 运行环境。**`@edgeone/pages-blob` 是 Node.js SDK；如果项目使用的是不支持该 SDK 的 Edge Functions 运行时，需要改用兼容的 Node.js 运行时。**
+2. 安装依赖（项目构建通常会自动安装）：
+
+   ```sh
+   npm install @edgeone/pages-blob
+   ```
+
+3. 配置项目环境变量：
+   - `REPOSITORIES`：JSON 仓库数组，格式见下方示例。
+   - `SYNC_SECRET`：手动同步接口的 Bearer 密钥。
+   - `GITHUB_TOKEN`、`CNB_TOKEN`：按需配置；公开仓库可先不设置。
+   - `GITHUB_API_BASE`、`CACHE_TTL_SECONDS`：按需配置。
+4. **不需要申请 KV、创建 KV 命名空间或配置 `STATS_KV` 绑定。** 首次访问函数时，Blob 会自动创建名为 `release-download-stats` 的命名空间。
+5. 首次部署后，调用 `POST /sync` 初始化统计数据：
+
+   ```sh
+   curl -X POST \
+     -H "Authorization: Bearer \${SYNC_SECRET}" \
+     https://你的 EdgeOne 域名/sync
+   ```
+
+   请将示例中的域名和密钥替换为自己的值。后续可通过平台定时任务调用同步接口，或使用项目所支持的定时触发能力更新统计数据。
+
+Blob 适配器使用强一致读取，尽量确保同步完成后立即读取到新数据。Blob 不提供 KV 的 `expirationTtl`，所以统计对象不会按缓存 TTL 自动过期，而是由后续同步覆盖更新；请留意免费版 1 GB 的存储额度。
+
 ## 其他平台适配器
 
-仓库中保留的其他边缘平台适配器和旧 API 统计核心仍是原有实现；上述无需仓库配置的自统计模式对应根目录 Cloudflare Worker 部署入口。
+仓库中其他平台适配器和旧 API 统计核心仍保留原有实现；Cloudflare 根目录 Worker 的自统计下载计数模式独立使用 D1，不受 EdgeOne Blob 适配器影响。
 
 ## 本地开发
 
