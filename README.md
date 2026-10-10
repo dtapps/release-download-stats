@@ -17,6 +17,24 @@
 
 首页显示存储连接状态正常，代表当前请求成功读取了统计存储；新服务显示 0 次是正常的。下载统计只累计经过本服务中转的 GET 请求。
 
+## Shields.io 动态徽章
+
+提供兼容 Shields.io Dynamic JSON Badge 的 `/shields.json` 接口，返回 `schemaVersion`、`label`、`message` 和 `color`。默认显示全站累计中转 GET 请求数；只自定义该 Shields.io 徽章，不改变原有徽章接口。
+
+在 Markdown 中使用：
+
+```md
+![下载请求数](https://img.shields.io/endpoint?url=https%3A%2F%2Fdownload.example.com%2Fshields.json)
+```
+
+自定义中文标签和颜色：
+
+```md
+![下载请求数](https://img.shields.io/endpoint?url=https%3A%2F%2Fdownload.example.com%2Fshields.json%3Flabel%3D%E4%B8%8B%E8%BD%BD%E8%AF%B7%E6%B1%82%E6%95%B0%26color%3D%2523409EFF)
+```
+
+也可以直接访问 `https://download.example.com/shields.json?label=Downloads&color=brightgreen` 查看 JSON。支持 `label` 中文/英文文本，以及 Shields.io 颜色名称或 `#RGB` / `#RRGGBB` 格式；无效颜色会回退到 `blue`。此端点的 `message` 始终由服务端读取全站累计数生成，不能通过参数伪造。
+
 ## 原理
 
 - 下载中转请求格式：`https://你的域名/https://github.com/owner/repo/releases/download/v1.0.0/file.zip`
