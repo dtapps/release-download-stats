@@ -11,13 +11,15 @@
     "db:migrations:apply": "wrangler d1 migrations apply DB --remote",
     "deploy": "wrangler deploy && npm run db:migrations:apply && wrangler deploy",
     "deploy:cloudflare": "npm run deploy",
-    "test:esa": "vitest run tests/esa.test.js"
+    "test:esa": "vitest run tests/esa.test.js",
+    "build:esa": "esbuild esa/handler.js --bundle --platform=browser --format=esm --outfile=dist/esa-handler.js"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261010.1",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3",
-    "wrangler": "^4.45.0"
+    "wrangler": "^4.45.0",
+    "esbuild": "^0.25.0"
   },
   "dependencies": {
     "@edgeone/pages-blob": "^0.0.18"
