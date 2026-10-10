@@ -84,18 +84,28 @@ export function renderHomePage(options: HomePageOptions): string {
         <p>徽章显示经过此服务的中转请求数，不代表文件已完整下载。</p>
       </article>
       <article class="card">
-        <h2>3. 使用 Shields.io 徽章</h2>
-        <p>如果不想让 README 直接引用自己的统计域名作为图片，可以使用 Shields.io 的 endpoint 徽章。它会读取本服务提供的 <code>/shields.json</code>。</p>
+        <h2>3. 本服务原生徽章预览</h2>
+        <p>这是本服务直接生成的徽章，不依赖 Shields.io。下面使用 CNB 仓库 <code>dtapp/certflow</code> 作为示例。</p>
         <p>徽章预览：</p>
-        <p><a href="${escapeHtml(shieldsBadgeUrl)}"><img src="${escapeHtml(shieldsBadgeUrl)}" alt="下载请求数"></a></p>
+        <p><a href="${base}/badge/cnb.cool/dtapp/certflow"><img src="${base}/badge/cnb.cool/dtapp/certflow" alt="certflow 下载请求数"></a></p>
+        <p>复制到 README：</p>
+        <pre>![certflow 下载请求数](${rawBase}/badge/cnb.cool/dtapp/certflow)</pre>
+        <p class="muted">此徽章显示经过当前部署服务中转的请求数；如果该仓库还没有中转请求，显示 0 属于正常情况。</p>
+      </article>
+      <article class="card">
+        <h2>4. 使用 Shields.io 徽章</h2>
+        <p>如果想使用 Shields.io 的样式，可以使用 endpoint 徽章读取本服务的 <code>/shields.json</code>。</p>
+        <p>全站徽章预览：</p>
+        <p><a href="${escapeHtml(shieldsBadgeUrl)}"><img src="${escapeHtml(shieldsBadgeUrl)}" alt="全站下载请求数"></a></p>
         <p>复制到 README：</p>
         <pre>![下载请求数](${shieldsBadgeUrl})</pre>
         <p>JSON 接口：<a href="${escapeHtml(shieldsJsonUrl)}">${escapeHtml(shieldsJsonUrl)} ↗</a></p>
         <p>标签和颜色可通过 JSON 地址参数自定义，例如 <code>?label=Downloads&amp;color=brightgreen</code>；也支持中文标签和 <code>#409EFF</code> 颜色。</p>
-        <p>也支持单仓库统计：在 JSON 地址添加 <code>platform=github.com&amp;repository=/owner/repo</code>，例如：</p>
-        <pre>${base}/shields.json?platform=github.com&amp;repository=/dtapps/fnmusic-sync</pre>
-        <p>对应的 Shields.io 徽章：</p>
-        <pre>https://img.shields.io/endpoint?url=${encodeURIComponent(rawBase + "/shields.json?platform=github.com&repository=/dtapps/fnmusic-sync")}</pre>
+        <p>单仓库 Shields.io 徽章预览（同样使用 <code>dtapp/certflow</code>）：</p>
+        <p><a href="https://img.shields.io/endpoint?url=${encodeURIComponent(rawBase + "/shields.json?platform=cnb.cool&repository=/dtapp/certflow")}"><img src="https://img.shields.io/endpoint?url=${encodeURIComponent(rawBase + "/shields.json?platform=cnb.cool&repository=/dtapp/certflow")}" alt="certflow Shields.io 下载请求数"></a></p>
+        <p>对应 Markdown：</p>
+        <pre>![certflow 下载请求数](https://img.shields.io/endpoint?url=${encodeURIComponent(rawBase + "/shields.json?platform=cnb.cool&repository=/dtapp/certflow")})</pre>
+        <p>单仓库 JSON 接口：<a href="${escapeHtml(rawBase + "/shields.json?platform=cnb.cool&repository=%2Fdtapp%2Fcertflow")}">${escapeHtml(rawBase + "/shields.json?platform=cnb.cool&repository=%2Fdtapp%2Fcertflow")} ↗</a></p>
       </article>
       <article class="card">
         <h2>4. 查看单仓库数据</h2>
