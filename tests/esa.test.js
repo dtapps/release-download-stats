@@ -70,6 +70,20 @@ describe("ESA download proxy", () => {
     expect(values.get("total")).toContain('"downloads":2');
   });
 
+  it("serves a Shields.io Dynamic JSON Badge with customizable label and color", async () => {
+    const response = await handler.fetch(new Request(
+      "https://stats.example.com/shields.json?label=%E4%B8%8B%E8%BD%BD%E8%AF%B7%E6%B1%82%E6%95%B0&color=%23409EFF",
+    ));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    expect(await response.json()).toEqual({
+      schemaVersion: 1,
+      label: "下载请求数",
+      message: "0",
+      color: "#409EFF",
+    });
+  });
+
   it("rejects unsupported source hosts", async () => {
     const response = await handler.fetch(new Request(
       "https://stats.example.com/https://example.com/owner/repo/file.zip",
