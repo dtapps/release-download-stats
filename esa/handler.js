@@ -114,7 +114,7 @@ async function increment(kv, key, platform, repository) {
 }
 
 function renderHome(baseUrl, total, storageOk) {
-  const base = escapeHtml(baseUrl.replace(/\\/$/, ""));
+  const base = escapeHtml(baseUrl.replace(/\/$/, ""));
   const statusText = storageOk ? "统计存储连接正常" : "统计存储连接异常";
   const statusClass = storageOk ? "ok" : "error";
   const count = formatCount(total);
