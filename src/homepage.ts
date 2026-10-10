@@ -58,11 +58,12 @@ export function renderHomePage(options: HomePageOptions): string {
           success: async function (captchaVerifyParam) {
             setStatus("验证码已通过交互，正在向 ESA 验签…");
             try {
-              const verifyUrl = "/?captcha_verify_param=" + encodeURIComponent(captchaVerifyParam);
+              const verifyUrl = "/";
               const response = await fetch(verifyUrl, {
                 method: "POST",
                 headers: {
-                  "content-type": "application/json"
+                  "content-type": "application/json",
+                  "captcha-verify-param": captchaVerifyParam
                 },
                 body: JSON.stringify({}),
                 credentials: "include",
