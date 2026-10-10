@@ -5,4 +5,6 @@ compatibility_date = "2026-10-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "release-download-stats"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+# Cloudflare Deploy to Cloudflare provisions a D1 database and replaces this placeholder.
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
