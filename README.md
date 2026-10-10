@@ -68,13 +68,15 @@ https://download.example.com/https://github.com/dtapps/fnmusic-sync/releases/dow
 1. 打开 Cloudflare Dashboard → **Workers & Pages** → **Create**，选择连接 Git 仓库的选项。
 2. 授权 GitHub，并选择你已有的 `release-download-stats` 仓库（或你自己的 fork）。
 3. 在构建设置中使用：
-   - **Build command**：`npm run deploy`
+   - **Build command**：`npm run typecheck && npm test`
+   - **Deploy command**：`npm run deploy`（不要再把 `npm run deploy` 填到 Build command；它负责部署 Worker 和执行 D1 migrations）
    - **Root directory**：仓库根目录（留空或填写 `/`，按界面要求）
-   - **Build output directory**：留空；这是 Worker，不是静态网站。
+   - **Build output directory**：Worker 项目不需要静态站点输出目录；如果界面没有此项，直接忽略。
 4. 确认仓库根目录的 `wrangler.toml` 中包含 `DB` 绑定，且不要手动填写虚假的 `database_id`。本项目要求 Wrangler `4.45.0` 或更新版本，首次部署时会根据 `database_name` 自动创建 D1 资源。
 5. 启动部署。项目的 `npm run deploy` 会按顺序执行：部署 Worker 并创建资源 → 应用 D1 migrations → 再部署 Worker。
-6. 部署完成后，在 Worker 的 **Settings → Domains & Routes** 中添加你的域名，例如 `download.example.com`。
-7. 验证：
+6. 保存 Git 集成后，Cloudflare Workers Builds 会监听所选生产分支；之后向该分支推送新提交会自动构建并部署。可在 Worker 的 **Settings → Builds** 查看连接的仓库、生产分支和构建历史。
+7. 部署完成后，在 Worker 的 **Settings → Domains & Routes** 中添加你的域名，例如 `download.example.com`。
+8. 验证：
    - 打开 `https://你的域名/health`，应返回 `{"ok": true}`。
    - 打开 `https://你的域名/stats/cnb.cool/dtapp/fnmusic-sync.json`，应返回统计 JSON，而不是 `Stats query failed`。
 
