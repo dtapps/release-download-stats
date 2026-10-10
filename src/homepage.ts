@@ -68,8 +68,15 @@ export function renderHomePage(options: HomePageOptions): string {
               if (code === "T001" || code === "T005" || code === "T006") {
                 const gate = document.getElementById("esa-captcha-gate");
                 const content = document.getElementById("homepage-content");
+                const template = document.getElementById("homepage-template");
+                if (!content || !template) {
+                  setStatus("首页内容初始化失败，请刷新页面重试。");
+                  return;
+                }
+                content.replaceChildren(template.content.cloneNode(true));
+                content.hidden = false;
                 if (gate) gate.hidden = true;
-                if (content) content.hidden = false;
+                document.dispatchEvent(new Event("homepage-unlocked"));
                 setStatus("验证通过，正在进入首页…");
               } else {
                 setStatus("ESA 验签未通过：" + (code || "响应中没有 X-Captcha-Verify-Code") + "。首页内容仍被锁定。");
@@ -142,8 +149,7 @@ export function renderHomePage(options: HomePageOptions): string {
 </head>
 <body>
   <main class="wrap">
-    ${captchaEnabled ? '<section class="card wide" id="esa-captcha-gate"><h2>请先完成人机验证</h2><p>每次打开首页都需要重新验证；验签成功后才会显示首页内容。</p></section>' : ''}
-    <div id="homepage-content"${captchaEnabled ? ' hidden' : ''}>
+    ${captchaEnabled ? '<section class="card wide" id="esa-captcha-gate"><h2>请先完成人机验证</h2><p>每次打开首页都需要重新验证；验签成功后才会显示首页内容。</p>' + captchaMarkup + '</section><div id="homepage-content" hidden></div><template id="homepage-template">' : '<div id="homepage-content">'}
     <section class="hero">
       <div class="eyebrow">Release Download Stats</div>
       <h1>下载请求自统计服务</h1>
@@ -156,7 +162,6 @@ export function renderHomePage(options: HomePageOptions): string {
     </section>
 
     <section class="grid">
-      ${captchaMarkup}
       <article class="card">
         <h2>服务状态</h2>
         <div class="metric">${total}</div>
@@ -233,7 +238,7 @@ export function renderHomePage(options: HomePageOptions): string {
       </article>
     </section>
     <footer class="foot">Release Download Stats · 自统计下载中转服务</footer>
-    </div>
+    ${captchaEnabled ? '</template>' : '</div>'}
   </main>
   <script>
     const escapeCell = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -260,9 +265,14 @@ export function renderHomePage(options: HomePageOptions): string {
       } catch (error) { body.innerHTML = '<tr><td colspan="6">加载失败：'+escapeCell(error.message)+'</td></tr>'; }
     }
     async function refreshStats() { await Promise.all([loadLeaderboard(), loadHistory()]); }
-    document.getElementById("leaderboard-period").addEventListener("change", loadLeaderboard);
-    document.getElementById("refresh-stats").addEventListener("click", refreshStats);
-    refreshStats();
+    function initStats() {
+      if (!document.getElementById("leaderboard-period")) return;
+      document.getElementById("leaderboard-period").addEventListener("change", loadLeaderboard);
+      document.getElementById("refresh-stats").addEventListener("click", refreshStats);
+      refreshStats();
+    }
+    document.addEventListener("homepage-unlocked", initStats);
+    initStats();
   </script>
   ${captchaScripts}
 </body>
