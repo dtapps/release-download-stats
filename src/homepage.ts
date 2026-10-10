@@ -92,6 +92,10 @@ export function renderHomePage(options: HomePageOptions): string {
         <pre>![下载请求数](${shieldsBadgeUrl})</pre>
         <p>JSON 接口：<a href="${escapeHtml(shieldsJsonUrl)}">${escapeHtml(shieldsJsonUrl)} ↗</a></p>
         <p>标签和颜色可通过 JSON 地址参数自定义，例如 <code>?label=Downloads&amp;color=brightgreen</code>；也支持中文标签和 <code>#409EFF</code> 颜色。</p>
+        <p>也支持单仓库统计：在 JSON 地址添加 <code>platform=github.com&amp;repository=/owner/repo</code>，例如：</p>
+        <pre>${base}/shields.json?platform=github.com&amp;repository=/dtapps/fnmusic-sync</pre>
+        <p>对应的 Shields.io 徽章：</p>
+        <pre>https://img.shields.io/endpoint?url=${encodeURIComponent(rawBase + "/shields.json?platform=github.com&repository=/dtapps/fnmusic-sync")}</pre>
       </article>
       <article class="card">
         <h2>4. 查看单仓库数据</h2>
