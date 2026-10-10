@@ -110,7 +110,7 @@ async function incrementStats(
 }
 
 async function handleStats(request: Request, url: URL, env: Env): Promise<Response> {
-  if (!bearerAuthorized(request, env)) {
+  if (url.pathname.startsWith("/_stats/") && !bearerAuthorized(request, env)) {
     return json({ error: "Unauthorized" }, 401);
   }
 
@@ -225,7 +225,7 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
-    if (url.pathname.startsWith("/_stats/")) {
+    if (url.pathname.startsWith("/_stats/") || url.pathname === "/leaderboard" || url.pathname === "/history") {
       if (request.method !== "GET") {
         return new Response("Method not allowed", {
           status: 405,
