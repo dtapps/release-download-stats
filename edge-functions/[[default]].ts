@@ -118,6 +118,21 @@ export async function onRequest(context: { request: Request }): Promise<Response
     return new Response("Method not allowed", { status: 405, headers: { allow: "GET, HEAD" } });
   }
 
+  if (url.pathname === "/shields.json") {
+    try {
+      const total = await readCounter("stats:total");
+      const label = (url.searchParams.get("label") ?? "下载请求数").trim().slice(0, 80) || "下载请求数";
+      const requestedColor = (url.searchParams.get("color") ?? "blue").trim();
+      const color = /^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}|[a-zA-Z][a-zA-Z0-9-]{0,31})$/.test(requestedColor)
+        ? requestedColor
+        : "blue";
+      return json({ schemaVersion: 1, label, message: formatCount(total?.downloads ?? 0), color });
+    } catch (error) {
+      console.error("Shields JSON query failed", error);
+      return json({ error: "Stats query failed" }, 500);
+    }
+  }
+
   if (url.pathname === "/" || url.pathname === "/total") {
     // The total is updated alongside each successful GET proxy request.
     let totalDownloads = 0;
