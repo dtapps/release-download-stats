@@ -1,13 +1,11 @@
 export type Provider = "github" | "cnb";
 
 export interface RepositoryTarget {
-  /** Stable, URL-safe identifier used by /badge/:id and /stats/:id.json. */
+  /** Stable URL-safe ID used by /badge/:id and /stats/:id.json. */
   id: string;
   provider: Provider;
-  /** Source repository in owner/name or namespace/name format. */
+  /** GitHub owner/name, or CNB namespace/repository path. */
   repository: string;
-  /** Required for CNB: exact, verified Releases API URL. */
-  releasesUrl?: string;
 }
 
 export interface ProviderStats {
