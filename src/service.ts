@@ -30,7 +30,7 @@ async function syncOne(kv: KVStore, config: StatsConfig, target: RepositoryTarge
   try {
     const stats = target.provider === "github"
       ? await fetchGitHubDownloads(target.repository, config.githubToken, fetch, config.githubApiBase)
-      : await fetchCNBDownloads(target.releasesUrl!, config.cnbToken);
+      : await fetchCNBDownloads(target.repository, config.cnbToken);
     const snapshot: RepositorySnapshot = {
       schemaVersion: 1,
       id: target.id,
