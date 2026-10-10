@@ -4,8 +4,9 @@ import { readConfig, type RuntimeEnv } from "../../src/config";
 import type { KVStore } from "../../src/types";
 
 // Blob 命名空间会在首次访问时自动创建，不需要申请或绑定 KV。
-// 使用强一致读取，避免同步完成后徽章仍读到旧缓存。
-const blob = getStore({ name: "release-download-stats", consistency: "strong" });
+// 使用 SDK 的命名空间字符串重载，兼容当前发布版本的 TypeScript 类型定义。
+// 读取时单独指定强一致性，避免同步完成后徽章仍读到旧缓存。
+const blob = getStore("release-download-stats");
 
 const store: KVStore = {
   get: async (key) => {
