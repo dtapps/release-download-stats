@@ -186,6 +186,7 @@ export async function onRequest(context: { request: Request }): Promise<Response
       platform: "EdgeOne Pages + Blob",
       storageOk,
       totalDownloads,
+      requestExplorer: true,
     }), {
       status: storageOk ? 200 : 503,
       headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
