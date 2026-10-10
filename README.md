@@ -17,6 +17,18 @@
 
 首页显示存储连接状态正常，代表当前请求成功读取了统计存储；新服务显示 0 次是正常的。下载统计只累计经过本服务中转的 GET 请求。
 
+## 排行榜与最近请求记录（Cloudflare D1）
+
+新版本提供两个公开 JSON 接口，并在首页显示排行榜和最近 50 条请求记录：
+
+- `/leaderboard?period=all&limit=10`：累计排行榜。
+- `/leaderboard?period=today&limit=10`：近 24 小时排行榜。
+- `/leaderboard?period=7d&limit=10`：近 7 天排行榜。
+- `/leaderboard?period=30d&limit=10`：近 30 天排行榜。
+- `/history?limit=50&offset=0`：最近请求记录，支持 `platform` 和 `repository` 筛选。
+
+历史记录只从启用新版本后开始累积，既有累计统计无法还原成逐条历史。记录只包含时间、平台、仓库、源文件路径、方法和中转响应状态，不记录 IP、Cookie 或请求头。状态码 302 代表本服务已重定向到源站，不代表文件最终下载成功。排行榜的累计值来自既有累计表，时间范围排行榜根据新历史表计算，因此近 24 小时、7 天和 30 天数据只覆盖历史表启用后的请求。
+
 ## Shields.io 动态徽章
 
 提供兼容 Shields.io Dynamic JSON Badge 的 `/shields.json` 接口，返回 `schemaVersion`、`label`、`message` 和 `color`。默认显示全站累计中转 GET 请求数；只自定义该 Shields.io 徽章，不改变原有徽章接口。
