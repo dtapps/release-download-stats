@@ -45,6 +45,8 @@ export interface StatsConfig {
   cnbToken?: string;
   githubApiBase?: string;
   cacheTtlSeconds?: number;
+  /** Optional first-party counter used instead of querying a provider API. */
+  getOwnDownloadCount?: (target: RepositoryTarget) => Promise<number>;
 }
 
 export interface FetchLike {
