@@ -1,0 +1,9 @@
+name = "release-download-proxy"
+main = "platforms/cloudflare/download-proxy/worker.ts"
+compatibility_date = "2026-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "release-download-stats"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "platforms/cloudflare/download-proxy/migrations"
