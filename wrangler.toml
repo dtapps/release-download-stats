@@ -3,9 +3,10 @@ main = "platforms/cloudflare/worker.ts"
 compatibility_date = "2026-10-01"
 
 [vars]
-REPOSITORY = "dtapps/fnmusic-sync"
-# Set CNB_RELEASES_URL to the exact verified Releases API URL from CNB OpenAPI.
-# Never put tokens in this file; use wrangler secret put.
+REPOSITORIES = '[{"id":"fnmusic-sync","provider":"github","repository":"dtapps/fnmusic-sync"}]'
+# Add more repository objects to the JSON array above.
+# Set secrets with: wrangler secret put GITHUB_TOKEN / SYNC_SECRET
+# CNB targets require a verified releasesUrl field in each JSON object.
 
 [[kv_namespaces]]
 binding = "STATS_KV"
