@@ -47,7 +47,7 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const isProxyRequest = url.pathname.startsWith("/https://");
-    const isStatsRequest = url.pathname.startsWith("/_stats/");
+    const isStatsRequest = url.pathname.startsWith("/_stats/") || url.pathname === "/leaderboard" || url.pathname === "/history";
 
     if (isProxyRequest || isStatsRequest) {
       return downloadProxy.fetch(request, env);
