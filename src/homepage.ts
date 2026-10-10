@@ -58,7 +58,7 @@ export function renderHomePage(options: HomePageOptions): string {
           success: async function (captchaVerifyParam) {
             setStatus("验证码已通过交互，正在向 ESA 验签…");
             try {
-              const verifyUrl = "/captcha-verify?captcha_verify_param=" + encodeURIComponent(captchaVerifyParam);
+              const verifyUrl = "/?captcha_verify_param=" + encodeURIComponent(captchaVerifyParam);
               const response = await fetch(verifyUrl, {
                 method: "POST",
                 headers: {
