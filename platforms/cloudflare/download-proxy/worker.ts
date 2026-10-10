@@ -1,3 +1,5 @@
+import { ensureStatsSchema } from "../../../src/cloudflare-schema";
+
 interface Env {
   DB: D1Database;
   STATS_TOKEN?: string;
@@ -78,6 +80,8 @@ async function incrementStats(
   repository: string,
   resourcePath: string,
 ): Promise<void> {
+  await ensureStatsSchema(env.DB);
+
   // A single D1 batch keeps the repository and file counters in one operation.
   await env.DB.batch([
     env.DB.prepare(`
@@ -102,6 +106,8 @@ async function handleStats(request: Request, url: URL, env: Env): Promise<Respon
   if (!bearerAuthorized(request, env)) {
     return json({ error: "Unauthorized" }, 401);
   }
+
+  await ensureStatsSchema(env.DB);
 
   const rawLimit = Number(url.searchParams.get("limit") ?? "100");
   const limit = Number.isFinite(rawLimit)
