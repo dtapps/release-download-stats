@@ -51,7 +51,8 @@ async function syncOne(kv: KVStore, config: StatsConfig, target: RepositoryTarge
     await kv.put(key, JSON.stringify(snapshot), { expirationTtl: config.cacheTtlSeconds ?? 60 * 60 * 24 * 30 });
     return snapshot;
   } catch (error) {
-    if (previous && typeof previous.downloads === "number") {
+    if (previous && typeof previous.downloads === "number" &&
+      (!config.getOwnDownloadCount || previous.source === "First-party download proxy (D1)")) {
       return { ...previous, warning: String(error) };
     }
     throw new Error(`${target.id} (${target.provider}:${target.repository}): ${String(error)}`);
