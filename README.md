@@ -57,37 +57,66 @@ https://download.example.com/https://github.com/dtapps/fnmusic-sync/releases/dow
 
 默认不需要设置 `STATS_TOKEN`；未设置时，私有统计接口会拒绝访问，但下载中转、徽章、总计和健康检查不受影响。
 
-### 命令行部署（可选）
+### 手动部署教程（连接已有 GitHub 仓库）
 
-如果要部署到自己的 Cloudflare 账户：
+如果不想点击 Deploy 按钮创建一份新的 GitHub 仓库，可以在 Cloudflare 直接连接你已有的仓库。
 
-1. 登录 Wrangler：
+#### 方式 A：Cloudflare Dashboard 连接 Git 仓库
 
-   ```sh
-   npx wrangler login
-   ```
+1. 打开 Cloudflare Dashboard → **Workers & Pages** → **Create**，选择连接 Git 仓库的选项。
+2. 授权 GitHub，并选择你已有的 `release-download-stats` 仓库（或你自己的 fork）。
+3. 在构建设置中使用：
+   - **Build command**：`npm run deploy`
+   - **Root directory**：仓库根目录（留空或填写 `/`，按界面要求）
+   - **Build output directory**：留空；这是 Worker，不是静态网站。
+4. 确认仓库根目录的 `wrangler.toml` 中包含 `DB` 绑定，且不要手动填写虚假的 `database_id`。本项目要求 Wrangler `4.45.0` 或更新版本，首次部署时会根据 `database_name` 自动创建 D1 资源。
+5. 启动部署。项目的 `npm run deploy` 会按顺序执行：部署 Worker 并创建资源 → 应用 D1 migrations → 再部署 Worker。
+6. 部署完成后，在 Worker 的 **Settings → Domains & Routes** 中添加你的域名，例如 `rds.dtapp.net`。
+7. 验证：
+   - 打开 `https://你的域名/health`，应返回 `{"ok": true}`。
+   - 打开 `https://你的域名/stats/cnb.cool/dtapp/fnmusic-sync.json`，应返回统计 JSON，而不是 `Stats query failed`。
 
-2. 创建 D1 数据库：
+> 注意：如果你的 Cloudflare 构建环境不允许运行 Wrangler 部署命令，使用下面的 CLI 方式。不要把 Build output directory 填成 `dist`，也不要把本项目当成 Pages 静态站点部署。
 
-   ```sh
-   npx wrangler d1 create release-download-stats
-   ```
+#### 方式 B：命令行手动部署（推荐用于排错）
 
-3. 确保 `wrangler.toml` 中的 D1 绑定配置指向你创建的数据库，并填写该数据库的 `database_id`（如果已有数据库）。
-4. 安装、检查并部署（部署命令会自动应用 migrations）：
+需要本机安装 Node.js 22 或兼容版本，并从 GitHub 克隆你自己的仓库：
 
-   ```sh
-   npm install
-   npm run typecheck
-   npm test
-   npm run deploy
-   ```
+```sh
+git clone https://github.com/你的账号/release-download-stats.git
+cd release-download-stats
+npm install
+npx wrangler login
+npm run typecheck
+npm test
+npm run deploy
+```
 
-5. 如需使用私有统计接口，再设置密钥：
+第一次执行 `npm run deploy` 时，Wrangler 会根据 `wrangler.toml` 的 `database_name` 自动创建 D1 资源，然后脚本应用迁移并重新部署。不要先手动创建另一个同名数据库，也不要把全零 UUID 填入 `database_id`。
 
-   ```sh
-   npx wrangler secret put STATS_TOKEN
-   ```
+如果你的 Cloudflare 账户已经有名为 `release-download-stats` 的 D1 数据库，或者自动创建资源提示名称冲突：
+1. 打开 Cloudflare Dashboard → **Storage & databases → D1 SQL database**，确认已有数据库的名称和 ID。
+2. 修改 `wrangler.toml`，在 `[[d1_databases]]` 下添加正确的 `database_id = "你的真实数据库 ID"`。
+3. 再运行 `npm run deploy`。已有数据库不会因为这条命令而自动清空；迁移使用 `IF NOT EXISTS` 创建缺少的表。
+
+如需使用私有统计接口，再设置密钥：
+
+```sh
+npx wrangler secret put STATS_TOKEN
+```
+
+#### 检查 D1 是否初始化
+
+在 Cloudflare Dashboard → **Storage & databases → D1** 中打开本项目绑定的数据库，进入 Console 执行：
+
+```sql
+SELECT name
+FROM sqlite_master
+WHERE type = 'table'
+ORDER BY name;
+```
+
+应看到 `repository_stats` 和 `file_stats`（Cloudflare 可能还会显示内部表 `_cf_KV`）。如果只有 `_cf_KV`，先重新运行 `npm run deploy`；Worker 也会在统计请求时尝试自动创建所需表，但部署后仍应确认数据库绑定的是同一个 D1。
 
 私有统计接口调用示例：
 
