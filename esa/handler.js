@@ -239,7 +239,8 @@ async function requestApi(kv,url,method){const limit=Math.max(1,Math.min(100,Num
       const fileKey = await hashKey("file", platform + "\n" + target.pathname);
       await increment(kv, repoKey, platform, repository);
       await increment(kv, fileKey, platform, target.pathname);
-      await increment(kv, "total", "all", "/");\n      await recordRequest(kv, platform, repository, target.pathname);
+      await increment(kv, "total", "all", "/");
+      await recordRequest(kv, platform, repository, target.pathname);
     } catch (error) {
       // Never block a release download just because optional stats storage failed.
       console.error("ESA EdgeKV download stats write failed", error);
