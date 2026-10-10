@@ -6,6 +6,17 @@
 
 点击上方 **Deploy to Cloudflare** 按钮，可以将项目复制到自己的 GitHub 账户，并通过 Cloudflare 部署 Worker 和创建所需的 D1 数据库。`wrangler.toml` 使用不带 `database_id` 的 D1 绑定，由 Wrangler 自动创建资源；部署脚本先部署以确保数据库资源已创建，再应用 D1 migrations，最后重新部署。Worker 还会在统计查询和下载计数前幂等创建所需表和索引，避免部署平台跳过 migrations 时统计直接失效。
 
+
+## 首页与服务检查
+
+部署完成后直接打开服务域名根路径 `/`，会显示服务说明、当前累计中转请求数、下载中转链接格式、徽章和 JSON 接口用法，以及 D1/Blob 存储连接状态。
+
+- `/`：使用说明和实时存储检查页面。
+- `/health`：JSON 健康检查；存储不可用时返回 HTTP 503。
+- `/total`：总请求数徽章。
+
+首页显示存储连接状态正常，代表当前请求成功读取了统计存储；新服务显示 0 次是正常的。下载统计只累计经过本服务中转的 GET 请求。
+
 ## 原理
 
 - 下载中转请求格式：`https://你的域名/https://github.com/owner/repo/releases/download/v1.0.0/file.zip`

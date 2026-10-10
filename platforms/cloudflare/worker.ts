@@ -1,4 +1,5 @@
 import { formatCount, renderBadge } from "../../src/badge";
+import { renderHomePage } from "../../src/homepage";
 import { ensureStatsSchema } from "../../src/cloudflare-schema";
 import downloadProxy from "./download-proxy/worker";
 
@@ -56,9 +57,46 @@ export default {
       return new Response("Method not allowed", { status: 405, headers: { allow: "GET, HEAD" } });
     }
 
-    if (url.pathname === "/health") return json({ ok: true });
+    if (url.pathname === "/health") {
+      try {
+        await ensureStatsSchema(env.DB);
+        await env.DB.prepare("SELECT 1 AS ok").first();
+        return json({ ok: true, storage: "D1", status: "healthy" });
+      } catch (error) {
+        console.error("Health check failed", error);
+        return json({ ok: false, storage: "D1", status: "unavailable" }, 503);
+      }
+    }
 
-    if (url.pathname === "/" || url.pathname === "/total") {
+    if (url.pathname === "/") {
+      try {
+        await ensureStatsSchema(env.DB);
+        const result = await env.DB.prepare(
+          "SELECT COALESCE(SUM(request_count), 0) AS total_downloads FROM repository_stats",
+        ).first<{ total_downloads: number }>();
+        return new Response(renderHomePage({
+          baseUrl: url.origin,
+          platform: "Cloudflare Workers + D1",
+          storageOk: true,
+          totalDownloads: Number(result?.total_downloads ?? 0),
+        }), {
+          headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+        });
+      } catch (error) {
+        console.error("Homepage stats query failed", error);
+        return new Response(renderHomePage({
+          baseUrl: url.origin,
+          platform: "Cloudflare Workers + D1",
+          storageOk: false,
+          totalDownloads: 0,
+        }), {
+          status: 503,
+          headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+        });
+      }
+    }
+
+    if (url.pathname === "/total") {
       try {
         await ensureStatsSchema(env.DB);
         const result = await env.DB.prepare(

@@ -1,5 +1,6 @@
 import { getStore } from "@edgeone/pages-blob";
 import { formatCount, renderBadge } from "../../src/badge";
+import { renderHomePage } from "../../src/homepage";
 
 const blob = getStore("release-download-stats");
 const ALLOWED_HOSTS = new Set([
@@ -104,15 +105,43 @@ export async function onRequest(context: { request: Request }): Promise<Response
   const request = context.request;
   const url = new URL(request.url);
 
-  if (url.pathname === "/health") return json({ ok: true });
+  if (url.pathname === "/health") {
+    try {
+      await blob.get("stats:total", { type: "text", consistency: "strong" });
+      return json({ ok: true, storage: "EdgeOne Blob", status: "healthy" });
+    } catch (error) {
+      console.error("Health check failed", error);
+      return json({ ok: false, storage: "EdgeOne Blob", status: "unavailable" }, 503);
+    }
+  }
   if (request.method !== "GET" && request.method !== "HEAD") {
     return new Response("Method not allowed", { status: 405, headers: { allow: "GET, HEAD" } });
   }
 
   if (url.pathname === "/" || url.pathname === "/total") {
     // The total is updated alongside each successful GET proxy request.
-    const total = await readCounter("stats:total");
-    return badge(renderBadge("proxy downloads", formatCount(total?.downloads ?? 0), "blue"), request.method);
+    let totalDownloads = 0;
+    let storageOk = true;
+    try {
+      const total = await readCounter("stats:total");
+      totalDownloads = total?.downloads ?? 0;
+    } catch (error) {
+      storageOk = false;
+      console.error("Homepage stats query failed", error);
+    }
+    if (url.pathname === "/total") {
+      if (!storageOk) return json({ error: "Stats storage unavailable" }, 503);
+      return badge(renderBadge("proxy downloads", formatCount(totalDownloads), "blue"), request.method);
+    }
+    return new Response(renderHomePage({
+      baseUrl: url.origin,
+      platform: "EdgeOne Pages + Blob",
+      storageOk,
+      totalDownloads,
+    }), {
+      status: storageOk ? 200 : 503,
+      headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+    });
   }
 
   const badgeTarget = parseBadgePath(url.pathname);
