@@ -62,7 +62,7 @@ export async function fetchCNBDownloads(
   }
 
   return {
-    downloads: releases.reduce((sum, release) => sum + sumReleaseAssets(release), 0),
+    downloads: releases.reduce<number>((sum, release) => sum + sumReleaseAssets(release), 0),
     updatedAt: new Date().toISOString(),
     source: "CNB Releases API",
   };
