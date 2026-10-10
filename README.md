@@ -72,7 +72,7 @@ https://download.example.com/https://github.com/dtapps/fnmusic-sync/releases/dow
    npx wrangler d1 create release-download-stats
    ```
 
-3. 将返回的 database ID 填入根目录 `wrangler.toml`，替换全零占位 ID。
+3. 确保 `wrangler.toml` 中的 D1 绑定配置指向你创建的数据库，并填写该数据库的 `database_id`。
 4. 安装、检查并部署（部署命令会自动应用 migrations）：
 
    ```sh
