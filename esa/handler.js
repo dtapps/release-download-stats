@@ -138,8 +138,12 @@ function homepageCaptcha(env) {
 async function handleRequest(request, env) {
   const url = new URL(request.url);
   const method = request.method;
-  // The ESA CAPTCHA rule should target POST /captcha-verify.
-  // ESA evaluates captcha-verify-param and adds X-Captcha-Verify-Code to this response.
+  // Keep the CAPTCHA verification request on the homepage URI so it matches an ESA rule protecting "/".
+  // ESA evaluates captcha_verify_param and adds X-Captcha-Verify-Code when the configured rule matches.
+  if (url.pathname === "/" && method === "POST") {
+    return json({ ok: true }, 200, method);
+  }
+  // Retain the dedicated endpoint for deployments whose ESA rule explicitly targets /captcha-verify.
   if (url.pathname === "/captcha-verify") {
     if (method !== "POST") {
       return new Response("Method not allowed", { status: 405, headers: { allow: "POST" } });
