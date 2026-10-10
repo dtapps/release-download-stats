@@ -29,7 +29,7 @@ function parseRepositories(value: string): RepositoryTarget[] {
     const value = item as Record<string, unknown>;
     const id = typeof value.id === "string" ? value.id.trim() : "";
     const provider = value.provider;
-    const repository = typeof value.repository === "string" ? value.repository.trim() : "";
+    const repository = typeof value.repository === "string" ? value.repository.trim().replace(/^\/+|\/+$/g, "") : "";
     if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/.test(id)) {
       throw new Error(`REPOSITORIES[${index}].id must be a URL-safe identifier`);
     }
@@ -38,18 +38,16 @@ function parseRepositories(value: string): RepositoryTarget[] {
     if (provider !== "github" && provider !== "cnb") {
       throw new Error(`REPOSITORIES[${index}].provider must be "github" or "cnb"`);
     }
-    if (!repository || repository.split("/").length !== 2 || repository.split("/").some((part) => !part)) {
-      throw new Error(`REPOSITORIES[${index}].repository must use owner/name format`);
+    const parts = repository.split("/");
+    if (!repository || parts.some((part) => !part) || (provider === "github" ? parts.length !== 2 : parts.length < 2)) {
+      throw new Error(provider === "github"
+        ? `REPOSITORIES[${index}].repository must use owner/name format`
+        : `REPOSITORIES[${index}].repository must be a CNB namespace/repository path`);
     }
-    const releasesUrl = typeof value.releasesUrl === "string" ? value.releasesUrl.trim() : undefined;
-    if (provider === "cnb" && !releasesUrl) {
-      throw new Error(`REPOSITORIES[${index}].releasesUrl is required for CNB targets`);
+    if (parts.some((part) => part === "." || part === "..")) {
+      throw new Error(`REPOSITORIES[${index}].repository contains an invalid path segment`);
     }
-    if (releasesUrl) {
-      const url = new URL(releasesUrl);
-      if (url.protocol !== "https:") throw new Error(`REPOSITORIES[${index}].releasesUrl must use HTTPS`);
-    }
-    return { id, provider, repository, releasesUrl } as RepositoryTarget;
+    return { id, provider, repository } as RepositoryTarget;
   });
 }
 
@@ -58,11 +56,11 @@ export function readConfig(env: RuntimeEnv): StatsConfig & { syncSecret?: string
   if (env.REPOSITORIES?.trim()) {
     repositories = parseRepositories(env.REPOSITORIES);
   } else if (env.REPOSITORY?.trim()) {
-    // Compatibility for the initial single-GitHub-repository configuration.
+    const repository = env.REPOSITORY.trim();
     repositories = [{
-      id: env.REPOSITORY.split("/").pop()!.replace(/[^A-Za-z0-9._-]/g, "-"),
+      id: repository.split("/").pop()!.replace(/[^A-Za-z0-9._-]/g, "-"),
       provider: "github",
-      repository: env.REPOSITORY.trim(),
+      repository,
     }];
   } else {
     throw new Error("REPOSITORIES is required; configure a JSON array of repository targets");
