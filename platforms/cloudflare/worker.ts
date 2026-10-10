@@ -79,6 +79,7 @@ export default {
           platform: "Cloudflare Workers + D1",
           storageOk: true,
           totalDownloads: Number(result?.total_downloads ?? 0),
+          requestExplorer: true,
         }), {
           headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
         });
