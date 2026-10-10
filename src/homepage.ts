@@ -4,6 +4,7 @@ export interface HomePageOptions {
   storageOk: boolean;
   totalDownloads: number;
   requestExplorer?: boolean;
+  captcha?: { ruleId: string; sceneId: string; identity: string; region: "cn" | "sgp" };
 }
 
 function escapeHtml(value: string): string {
@@ -24,6 +25,75 @@ export function renderHomePage(options: HomePageOptions): string {
   const statusText = options.storageOk ? "统计存储连接正常" : "统计存储连接异常";
   const statusClass = options.storageOk ? "ok" : "error";
   const platform = escapeHtml(options.platform);
+  const captchaEnabled = Boolean(options.captcha?.ruleId.trim() && options.captcha?.sceneId.trim() && options.captcha?.identity.trim());
+  const captchaMarkup = captchaEnabled ? `
+      <article class="card wide" id="esa-captcha-card">
+        <h2>人机验证</h2>
+        <p>此验证仅用于当前 ESA 首页。完成验证后，页面会向 ESA 当前首页发起验签请求。</p>
+        <div id="captcha-element"></div>
+        <div class="controls"><button type="button" id="captcha-button">开始人机验证</button></div>
+        <p id="captcha-status" class="muted" role="status" aria-live="polite">验证码正在初始化…</p>
+      </article>` : "";
+  const captchaScripts = captchaEnabled && options.captcha ? `
+  <script>
+    window.AliyunCaptchaConfig = {
+      region: ${JSON.stringify(options.captcha.region)},
+      prefix: ${JSON.stringify(options.captcha.identity)}
+    };
+    (function () {
+      const status = document.getElementById("captcha-status");
+      const button = document.getElementById("captcha-button");
+      let captchaInstance = null;
+      let initialized = false;
+      function setStatus(message) { if (status) status.textContent = message; }
+      function initCaptcha() {
+        if (initialized || typeof window.initAliyunCaptcha !== "function") return;
+        initialized = true;
+        window.initAliyunCaptcha({
+          SceneId: ${JSON.stringify(options.captcha.sceneId)},
+          mode: "popup",
+          element: "#captcha-element",
+          button: "#captcha-button",
+          server: ["captcha-esa-open.aliyuncs.com", "captcha-esa-open-b.aliyuncs.com"],
+          success: async function (captchaVerifyParam) {
+            setStatus("验证码已通过交互，正在向 ESA 验签…");
+            try {
+              const response = await fetch("/", {
+                method: "GET",
+                headers: { "captcha-verify-param": captchaVerifyParam },
+                credentials: "include",
+                cache: "no-store"
+              });
+              const code = response.headers.get("X-Captcha-Verify-Code");
+              if (code === "T001" || code === "T005" || code === "T006") {
+                setStatus("验证通过（" + code + "）");
+              } else {
+                setStatus("ESA 验签未通过：" + (code || "响应中没有 X-Captcha-Verify-Code"));
+              }
+            } catch (error) {
+              setStatus("验签请求失败：" + (error && error.message ? error.message : String(error)));
+            }
+            if (captchaInstance && typeof captchaInstance.refresh === "function") captchaInstance.refresh();
+          },
+          fail: function (result) {
+            setStatus("验证码未通过，请重试。" + (result && result.code ? "（" + result.code + "）" : ""));
+          },
+          getInstance: function (instance) { captchaInstance = instance; },
+          onError: function (error) {
+            setStatus("验证码初始化失败：" + (error && error.msg ? error.msg : "请检查 ESA 配置和网络"));
+          },
+          slideStyle: { width: 360, height: 40 }
+        });
+        setStatus("验证码已就绪，点击按钮开始验证。");
+      }
+      const script = document.createElement("script");
+      script.src = "https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js";
+      script.async = true;
+      script.onload = initCaptcha;
+      script.onerror = function () { setStatus("验证码脚本加载失败，请检查网络或浏览器拦截设置。"); };
+      document.head.appendChild(script);
+    })();
+  </script>` : "";
   const requestExplorer = options.requestExplorer ? `      <article class="card wide">
         <h2>5. 请求排行榜与最近记录</h2>
         <p>排行榜根据已记录的中转请求统计；最近记录用于排查请求时间、仓库和文件路径。302 表示本服务已发起跳转，不代表源站下载成功。</p>
@@ -80,6 +150,7 @@ export function renderHomePage(options: HomePageOptions): string {
     </section>
 
     <section class="grid">
+      ${captchaMarkup}
       <article class="card">
         <h2>服务状态</h2>
         <div class="metric">${total}</div>
@@ -186,6 +257,7 @@ export function renderHomePage(options: HomePageOptions): string {
     document.getElementById("refresh-stats").addEventListener("click", refreshStats);
     refreshStats();
   </script>
+  ${captchaScripts}
 </body>
 </html>`;
 }
