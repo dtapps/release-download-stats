@@ -1,40 +1,44 @@
-import { handleRequest, syncStats } from "../../src/service";
-import { readConfig, type RuntimeEnv } from "../../src/config";
-import type { KVStore, RepositoryTarget } from "../../src/types";
+import { formatCount, renderBadge } from "../../src/badge";
 import downloadProxy from "./download-proxy/worker";
 
-interface Env extends RuntimeEnv {
-  STATS_KV: KVNamespace;
+interface Env {
   DB: D1Database;
   STATS_TOKEN: string;
 }
 
-const store = (kv: KVNamespace): KVStore => ({
-  get: (key) => kv.get(key),
-  put: (key, value, options) => kv.put(key, value, options),
-});
+const JSON_HEADERS = {
+  "content-type": "application/json; charset=utf-8",
+  "cache-control": "no-store",
+};
 
-function ownRepositoryIdentity(target: RepositoryTarget): { platform: string; repository: string } {
-  return {
-    platform: target.provider === "github" ? "github.com" : "cnb.cool",
-    repository: "/" + target.repository.replace(/^\\/+|\\/+$/g, ""),
-  };
+function json(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data, null, 2), { status, headers: JSON_HEADERS });
 }
 
-function configForEnv(env: Env) {
-  const config = readConfig(env);
-  return {
-    ...config,
-    // Badge counts come from requests that passed through our own download
-    // proxy. Do not use provider API download_count values for these badges.
-    getOwnDownloadCount: async (target: RepositoryTarget): Promise<number> => {
-      const identity = ownRepositoryIdentity(target);
-      const row = await env.DB.prepare(
-        "SELECT request_count FROM repository_stats WHERE platform = ? AND repository = ?",
-      ).bind(identity.platform, identity.repository).first<{ request_count: number }>();
-      return Number(row?.request_count ?? 0);
+function badge(svg: string, method: string): Response {
+  return new Response(method === "HEAD" ? null : svg, {
+    headers: {
+      "content-type": "image/svg+xml; charset=utf-8",
+      "cache-control": "public, max-age=60, s-maxage=60",
+      "access-control-allow-origin": "*",
     },
-  };
+  });
+}
+
+function parseRepositoryBadge(pathname: string): { platform: string; repository: string; json: boolean } | null {
+  const match = pathname.match(/^\/(?:badge|stats)\/(github\.com|cnb\.cool|gitea\.com|gitlab\.com|gitee\.com|gitcode\.com)\/([^/]+)\/([^/]+?)(\.json)?\/?$/);
+  if (!match) return null;
+  const platform = match[1].toLowerCase();
+  let owner: string;
+  let name: string;
+  try {
+    owner = decodeURIComponent(match[2]);
+    name = decodeURIComponent(match[3]);
+  } catch {
+    return null;
+  }
+  if (!owner || !name || owner === "." || owner === ".." || name === "." || name === "..") return null;
+  return { platform, repository: `/${owner}/${name}`, json: pathname.startsWith("/stats/") || Boolean(match[4]) };
 }
 
 export default {
@@ -44,24 +48,59 @@ export default {
     const isStatsRequest = url.pathname.startsWith("/_stats/");
 
     if (isProxyRequest || isStatsRequest) {
-      const response = await downloadProxy.fetch(request, env);
-      // Refresh the existing badge/KV snapshots after a successful counted
-      // download request, so /badge/:id and /stats.json show our own count.
-      if (isProxyRequest && request.method === "GET" && response.status === 302) {
-        try {
-          await syncStats(store(env.STATS_KV), configForEnv(env));
-        } catch (error) {
-          // Never break a download because the badge cache could not refresh.
-          console.error("Badge stats refresh failed", error);
-        }
-      }
-      return response;
+      return downloadProxy.fetch(request, env);
     }
 
-    return handleRequest(request, store(env.STATS_KV), configForEnv(env));
-  },
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      return new Response("Method not allowed", { status: 405, headers: { allow: "GET, HEAD" } });
+    }
 
-  async scheduled(_controller: ScheduledController, env: Env): Promise<void> {
-    await syncStats(store(env.STATS_KV), configForEnv(env));
+    if (url.pathname === "/health") return json({ ok: true });
+
+    if (url.pathname === "/" || url.pathname === "/total") {
+      try {
+        const result = await env.DB.prepare(
+          "SELECT COALESCE(SUM(request_count), 0) AS total_downloads FROM repository_stats",
+        ).first<{ total_downloads: number }>();
+        const total = Number(result?.total_downloads ?? 0);
+        return badge(renderBadge("total downloads", formatCount(total), "blue"), request.method);
+      } catch (error) {
+        console.error("Total badge query failed", error);
+        return json({ error: "Stats query failed" }, 500);
+      }
+    }
+
+    const target = parseRepositoryBadge(url.pathname);
+    if (target) {
+      try {
+        const result = await env.DB.prepare(
+          "SELECT request_count, first_requested_at, last_requested_at FROM repository_stats WHERE platform = ? AND repository = ?",
+        ).bind(target.platform, target.repository).first<{
+          request_count: number;
+          first_requested_at: string;
+          last_requested_at: string;
+        }>();
+        const downloads = Number(result?.request_count ?? 0);
+        const snapshot = {
+          platform: target.platform,
+          repository: target.repository,
+          downloads,
+          source: "First-party download proxy (D1)",
+          firstRequestedAt: result?.first_requested_at ?? null,
+          lastRequestedAt: result?.last_requested_at ?? null,
+        };
+        if (target.json) return json(snapshot);
+        const color = target.platform === "cnb.cool" ? "green" : "blue";
+        return badge(renderBadge("proxy downloads", formatCount(downloads), color), request.method);
+      } catch (error) {
+        console.error("Repository badge query failed", error);
+        return json({ error: "Stats query failed" }, 500);
+      }
+    }
+
+    return new Response(
+      "Not found. Use /badge/<platform>/<owner>/<repo>, /stats/<platform>/<owner>/<repo>.json, /total, /health, or /_stats/*.",
+      { status: 404 },
+    );
   },
 };
