@@ -174,7 +174,7 @@ export default {
     }
 
     return new Response(
-      "Not found. Use /badge/<platform>/<owner>/<repo>, /stats/<platform>/<owner>/<repo>.json, /total, /health, or /_stats/*.",
+      "Not found. Use /badge/<platform>/<owner>/<repo>, /stats/<platform>/<owner>/<repo>.json, /leaderboard, /history, /total, /health, or /_stats/*.",
       { status: 404 },
     );
   },
