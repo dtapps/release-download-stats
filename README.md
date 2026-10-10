@@ -30,7 +30,7 @@
 自定义中文标签和颜色：
 
 ```md
-![下载请求数](https://img.shields.io/endpoint?url=https%3A%2F%2Fdownload.example.com%2Fshields.json%3Flabel%3D%E4%B8%8B%E8%BD%BD%E8%AF%B7%E6%B1%82%E6%95%B0%26color%3D%2523409EFF)
+![下载请求数](https://img.shields.io/endpoint?url=https%3A%2F%2Fdownload.example.com%2Fshields.json%3Flabel%3D%25E4%25B8%258B%25E8%25BD%25BD%25E8%25AF%25B7%25E6%25B1%2582%25E6%2595%25B0%26color%3D%2523409EFF)
 ```
 
 也可以直接访问 `https://download.example.com/shields.json?label=Downloads&color=brightgreen` 查看 JSON。支持 `label` 中文/英文文本，以及 Shields.io 颜色名称或 `#RGB` / `#RRGGBB` 格式；无效颜色会回退到 `blue`。此端点的 `message` 始终由服务端读取全站累计数生成，不能通过参数伪造。
