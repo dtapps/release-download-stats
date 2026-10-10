@@ -1,5 +1,5 @@
 {
-  "entry": "./esa/handler.js",
-  "installCommand": "",
-  "buildCommand": "echo 'No build required for ESA Edge Function'"
+  "entry": "./dist/esa-handler.js",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build:esa"
 }
