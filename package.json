@@ -1,0 +1,19 @@
+{
+  "name": "release-download-stats",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Cached GitHub and CNB release download badges for edge runtimes",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "dev": "wrangler dev",
+    "deploy:cloudflare": "wrangler deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20261001.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4",
+    "wrangler": "^4.40.0"
+  }
+}
