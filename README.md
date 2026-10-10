@@ -162,14 +162,14 @@ EdgeOne 适配器使用 `@edgeone/pages-blob` 持久化统计快照，不再依�
    - `REPOSITORIES`：JSON 仓库数组，格式见下方示例。
    - `SYNC_SECRET`：手动同步接口的 Bearer 密钥。
    - `GITHUB_TOKEN`、`CNB_TOKEN`：按需配置；公开仓库可先不设置。
-   - `GITHUB_API_BASE`、`CACHE_TTL_SECONDS`：按需配置。
+   - `GITHUB_API_BASE`：按需配置。`CACHE_TTL_SECONDS` 对使用 Blob 的 EdgeOne 适配器不生效，因为 Blob 不支持 `expirationTtl`。
 4. **不需要申请 KV、创建 KV 命名空间或配置 `STATS_KV` 绑定。** 首次访问函数时，Blob 会自动创建名为 `release-download-stats` 的命名空间。
 5. 首次部署后，调用 `POST /sync` 初始化统计数据：
 
    ```sh
    curl -X POST \
      -H "Authorization: Bearer \${SYNC_SECRET}" \
-     https://你的 EdgeOne 域名/sync
+     https://你的域名/sync
    ```
 
    请将示例中的域名和密钥替换为自己的值。后续可通过平台定时任务调用同步接口，或使用项目所支持的定时触发能力更新统计数据。
