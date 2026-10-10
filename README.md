@@ -149,32 +149,38 @@ curl -G -H "Authorization: Bearer $STATS_TOKEN" \
 
 ## EdgeOne 部署（Blob 存储）
 
-EdgeOne 适配器使用 `@edgeone/pages-blob` 持久化统计快照，不再依赖需要申请和绑定的 KV。Blob 免费版提供 1 GB 存储空间；首次调用 `getStore("release-download-stats")` 时会自动创建命名空间。
+EdgeOne 版本与 Cloudflare 一样，**统计的是经过本项目下载中转地址的 GET 请求**，不调用 GitHub Releases 或 CNB API 获取上游下载量，也不需要预先登记仓库。仓库和文件计数保存在 `@edgeone/pages-blob` 中，首次访问时自动创建 Blob 命名空间。
 
-1. 将仓库部署到支持 Node.js SDK 的 EdgeOne Pages / Makers Functions 运行环境。**`@edgeone/pages-blob` 是 Node.js SDK；如果项目使用的是不支持该 SDK 的 Edge Functions 运行时，需要改用兼容的 Node.js 运行时。**
-2. 安装依赖（项目构建通常会自动安装）：
+### 下载中转
 
-   ```sh
-   npm install @edgeone/pages-blob
-   ```
+将下载链接改为在原始 HTTPS 地址前加上部署域名和一个斜杠：
 
-3. 配置项目环境变量：
-   - `REPOSITORIES`：JSON 仓库数组，格式见下方示例。
-   - `SYNC_SECRET`：手动同步接口的 Bearer 密钥。
-   - `GITHUB_TOKEN`、`CNB_TOKEN`：按需配置；公开仓库可先不设置。
-   - `GITHUB_API_BASE`：按需配置。`CACHE_TTL_SECONDS` 对使用 Blob 的 EdgeOne 适配器不生效，因为 Blob 不支持 `expirationTtl`。
-4. **不需要申请 KV、创建 KV 命名空间或配置 `STATS_KV` 绑定。** 首次访问函数时，Blob 会自动创建名为 `release-download-stats` 的命名空间。
-5. 首次部署后，调用 `POST /sync` 初始化统计数据：
+```text
+https://你的域名/https://github.com/owner/repo/releases/download/v1.0.0/file.zip
+```
 
-   ```sh
-   curl -X POST \
-     -H "Authorization: Bearer $SYNC_SECRET" \
-     https://你的域名/sync
-   ```
+支持的源站：`github.com`、`cnb.cool`、`gitea.com`、`gitlab.com`、`gitee.com`、`gitcode.com`。GET 请求计数后跳转到源站；HEAD 请求只跳转，不累计。直接访问源站不会计入统计。
 
-   请将示例中的域名和密钥替换为自己的值。后续可通过平台定时任务调用同步接口，或使用项目所支持的定时触发能力更新统计数据。
+### 徽章与接口
 
-Blob 适配器使用强一致读取，尽量确保同步完成后立即读取到新数据。Blob 不提供 KV 的 `expirationTtl`，所以统计对象不会按缓存 TTL 自动过期，而是由后续同步覆盖更新；请留意免费版 1 GB 的存储额度。
+| URL | 说明 |
+| --- | --- |
+| `/badge/github.com/owner/repo` | GitHub 仓库中转请求数徽章 |
+| `/stats/github.com/owner/repo.json` | GitHub 仓库统计 JSON |
+| `/badge/cnb.cool/namespace/repo` | CNB 仓库中转请求数徽章 |
+| `/stats/cnb.cool/namespace/repo.json` | CNB 仓库统计 JSON |
+| `/total` 或 `/` | 所有仓库的中转 GET 请求总数 |
+| `/health` | 健康检查 |
+
+README 徽章示例：
+
+```md
+![下载请求数](https://你的域名/badge/github.com/owner/repo)
+```
+
+EdgeOne 适配器**不需要配置** `REPOSITORIES`、`SYNC_SECRET`、`GITHUB_TOKEN`、`CNB_TOKEN`、`GITHUB_API_BASE` 或 `CACHE_TTL_SECONDS`；无需手动同步，也不需要定时任务、KV 绑定或手动创建 Blob 命名空间。
+
+注意：Blob 目前使用读取后写入的计数方式，极高并发下同时到达的请求可能发生计数覆盖；它统计的是中转 GET 请求次数，不代表用户最终成功下载了文件。
 
 ## 其他平台适配器
 
