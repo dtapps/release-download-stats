@@ -99,15 +99,31 @@ export default {
     if (url.pathname === "/shields.json") {
       try {
         await ensureStatsSchema(env.DB);
-        const result = await env.DB.prepare(
-          "SELECT COALESCE(SUM(request_count), 0) AS total_downloads FROM repository_stats",
-        ).first<{ total_downloads: number }>();
+        const platformParam = (url.searchParams.get("platform") ?? "").trim().toLowerCase();
+        const repositoryParam = (url.searchParams.get("repository") ?? "").trim();
+        let downloads: number;
+        if (platformParam || repositoryParam) {
+          const allowedPlatforms = new Set(["github.com", "cnb.cool", "gitea.com", "gitlab.com", "gitee.com", "gitcode.com"]);
+          const match = repositoryParam.match(/^\/?([^/]+)\/([^/]+)\/?$/);
+          if (!allowedPlatforms.has(platformParam) || !match || [match[1], match[2]].some(part => part === "." || part === "..")) {
+            return json({ error: "Invalid repository; provide platform and repository, e.g. platform=github.com&repository=/owner/repo" }, 400);
+          }
+          const result = await env.DB.prepare(
+            "SELECT request_count FROM repository_stats WHERE platform = ? AND repository = ?",
+          ).bind(platformParam, `/${match[1]}/${match[2]}`).first<{ request_count: number }>();
+          downloads = Number(result?.request_count ?? 0);
+        } else {
+          const result = await env.DB.prepare(
+            "SELECT COALESCE(SUM(request_count), 0) AS total_downloads FROM repository_stats",
+          ).first<{ total_downloads: number }>();
+          downloads = Number(result?.total_downloads ?? 0);
+        }
         const label = (url.searchParams.get("label") ?? "下载请求数").trim().slice(0, 80) || "下载请求数";
         const requestedColor = (url.searchParams.get("color") ?? "blue").trim();
         const color = /^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}|[a-zA-Z][a-zA-Z0-9-]{0,31})$/.test(requestedColor)
           ? requestedColor
           : "blue";
-        return json({ schemaVersion: 1, label, message: formatCount(Number(result?.total_downloads ?? 0)), color });
+        return json({ schemaVersion: 1, label, message: formatCount(downloads), color });
       } catch (error) {
         console.error("Shields JSON query failed", error);
         return json({ error: "Stats query failed" }, 500);
