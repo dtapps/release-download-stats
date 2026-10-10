@@ -1,6 +1,6 @@
 export interface HomePageOptions {
   baseUrl: string;
-  platform: "Cloudflare Workers + D1" | "EdgeOne Pages + Blob";
+  platform: "Cloudflare Workers + D1" | "EdgeOne Pages + Blob" | "Alibaba Cloud ESA + EdgeKV";
   storageOk: boolean;
   totalDownloads: number;
 }
