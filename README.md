@@ -33,7 +33,25 @@
 ![下载请求数](https://img.shields.io/endpoint?url=https%3A%2F%2Fdownload.example.com%2Fshields.json%3Flabel%3D%25E4%25B8%258B%25E8%25BD%25BD%25E8%25AF%25B7%25E6%25B1%2582%25E6%2595%25B0%26color%3D%2523409EFF)
 ```
 
-也可以直接访问 `https://download.example.com/shields.json?label=Downloads&color=brightgreen` 查看 JSON。支持 `label` 中文/英文文本，以及 Shields.io 颜色名称或 `#RGB` / `#RRGGBB` 格式；无效颜色会回退到 `blue`。此端点的 `message` 始终由服务端读取全站累计数生成，不能通过参数伪造。
+也可以直接访问 `https://download.example.com/shields.json?label=Downloads&color=brightgreen` 查看 JSON。支持 `label` 中文/英文文本，以及 Shields.io 颜色名称或 `#RGB` / `#RRGGBB` 格式；无效颜色会回退到 `blue`。
+
+### 单仓库 Shields.io 徽章
+
+在 `/shields.json` 上同时传入 `platform` 和 `repository`，即可只显示指定仓库的中转请求数。平台必须是 `github.com`、`cnb.cool`、`gitea.com`、`gitlab.com`、`gitee.com` 或 `gitcode.com`；仓库格式为 `/owner/repo`（CNB 等平台的 namespace/repo 同样适用）。
+
+例如，只显示 `dtapps/fnmusic-sync` 的请求数：
+
+```md
+![fnmusic-sync 下载请求数](https://img.shields.io/endpoint?url=https%3A%2F%2Fdownload.example.com%2Fshields.json%3Fplatform%3Dgithub.com%26repository%3D%252Fdtapps%252Ffnmusic-sync)
+```
+
+JSON 原始接口：
+
+```text
+https://download.example.com/shields.json?platform=github.com&repository=%2Fdtapps%2Ffnmusic-sync
+```
+
+不传这两个参数时仍然返回全站总数；只传其中一个或格式不合法时返回 HTTP 400。单仓库计数同样只统计经过本服务中转的 GET 请求。
 
 ## 原理
 
