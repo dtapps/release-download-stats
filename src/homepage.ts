@@ -3,6 +3,7 @@ export interface HomePageOptions {
   platform: "Cloudflare Workers + D1" | "EdgeOne Pages + Blob" | "Alibaba Cloud ESA + EdgeKV";
   storageOk: boolean;
   totalDownloads: number;
+  requestExplorer?: boolean;
 }
 
 function escapeHtml(value: string): string {
@@ -23,6 +24,22 @@ export function renderHomePage(options: HomePageOptions): string {
   const statusText = options.storageOk ? "统计存储连接正常" : "统计存储连接异常";
   const statusClass = options.storageOk ? "ok" : "error";
   const platform = escapeHtml(options.platform);
+  const requestExplorer = options.requestExplorer ? `      <article class="card wide">
+        <h2>5. 请求排行榜与最近记录</h2>
+        <p>排行榜根据已记录的中转请求统计；最近记录用于排查请求时间、仓库和文件路径。302 表示本服务已发起跳转，不代表源站下载成功。</p>
+        <div class="controls">
+          <label>排行榜时间范围
+            <select id="leaderboard-period"><option value="all">累计</option><option value="today">近 24 小时</option><option value="7d">近 7 天</option><option value="30d">近 30 天</option></select>
+          </label>
+          <button type="button" id="refresh-stats">刷新数据</button>
+        </div>
+        <h3>请求排行榜 Top 10</h3>
+        <div class="table-wrap"><table><thead><tr><th>#</th><th>平台</th><th>仓库</th><th>请求数</th><th>最近请求</th></tr></thead><tbody id="leaderboard-body"><tr><td colspan="5">正在加载…</td></tr></tbody></table></div>
+        <h3>最近 50 条请求</h3>
+        <div class="table-wrap"><table><thead><tr><th>时间</th><th>平台</th><th>仓库</th><th>文件路径</th><th>方法</th><th>状态</th></tr></thead><tbody id="history-body"><tr><td colspan="6">正在加载…</td></tr></tbody></table></div>
+        <p class="muted">历史记录当前仅记录 GET 中转请求；不保存 IP、Cookie 或请求头。数据由新版本开始累积，旧的累计数据不会补生成历史记录。</p>
+        <p>JSON 接口：<a href="${base}/leaderboard?period=all&limit=10">/leaderboard</a> · <a href="${base}/history?limit=50">/history</a></p>
+      </article>` : "";
 
   return `<!doctype html>
 <html lang="zh-CN">
@@ -125,22 +142,8 @@ export function renderHomePage(options: HomePageOptions): string {
         </div>
         <p class="muted">示例路径中的 owner/repo 需要替换成实际仓库；未出现过的仓库会返回 0。</p>
       </article>
-      <article class="card wide">
-        <h2>5. 请求排行榜与最近记录</h2>
-        <p>排行榜根据已记录的中转请求统计；最近记录用于排查请求时间、仓库和文件路径。302 表示本服务已发起跳转，不代表源站下载成功。</p>
-        <div class="controls">
-          <label>排行榜时间范围
-            <select id="leaderboard-period"><option value="all">累计</option><option value="today">近 24 小时</option><option value="7d">近 7 天</option><option value="30d">近 30 天</option></select>
-          </label>
-          <button type="button" id="refresh-stats">刷新数据</button>
-        </div>
-        <h3>请求排行榜 Top 10</h3>
-        <div class="table-wrap"><table><thead><tr><th>#</th><th>平台</th><th>仓库</th><th>请求数</th><th>最近请求</th></tr></thead><tbody id="leaderboard-body"><tr><td colspan="5">正在加载…</td></tr></tbody></table></div>
-        <h3>最近 50 条请求</h3>
-        <div class="table-wrap"><table><thead><tr><th>时间</th><th>平台</th><th>仓库</th><th>文件路径</th><th>方法</th><th>状态</th></tr></thead><tbody id="history-body"><tr><td colspan="6">正在加载…</td></tr></tbody></table></div>
-        <p class="muted">历史记录当前仅记录 GET 中转请求；不保存 IP、Cookie 或请求头。数据由新版本开始累积，旧的累计数据不会补生成历史记录。</p>
-        <p>JSON 接口：<a href="${base}/leaderboard?period=all&limit=10">/leaderboard</a> · <a href="${base}/history?limit=50">/history</a></p>
-      </article>
+      ${requestExplorer}
+
       <article class="card wide">
         <h2>统计规则与存储状态</h2>
         <ul>
