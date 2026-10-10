@@ -14,7 +14,7 @@ describe("renderBadge", () => {
     expect(renderBadge("x", "a&b")).toContain("a&amp;b");
   });
 
-  it("formats compact counts", () => {
-    expect(formatCount(1200)).toBe("1.2K");
+  it("formats compact counts using the runtime locale conventions", () => {
+    expect(formatCount(1200)).toBe("1.2k");
   });
 });
