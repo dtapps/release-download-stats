@@ -66,9 +66,13 @@ export function renderHomePage(options: HomePageOptions): string {
               });
               const code = response.headers.get("X-Captcha-Verify-Code");
               if (code === "T001" || code === "T005" || code === "T006") {
-                setStatus("验证通过（" + code + "）");
+                const gate = document.getElementById("esa-captcha-gate");
+                const content = document.getElementById("homepage-content");
+                if (gate) gate.hidden = true;
+                if (content) content.hidden = false;
+                setStatus("验证通过，正在进入首页…");
               } else {
-                setStatus("ESA 验签未通过：" + (code || "响应中没有 X-Captcha-Verify-Code"));
+                setStatus("ESA 验签未通过：" + (code || "响应中没有 X-Captcha-Verify-Code") + "。首页内容仍被锁定。");
               }
             } catch (error) {
               setStatus("验签请求失败：" + (error && error.message ? error.message : String(error)));
@@ -138,6 +142,8 @@ export function renderHomePage(options: HomePageOptions): string {
 </head>
 <body>
   <main class="wrap">
+    ${captchaEnabled ? '<section class="card wide" id="esa-captcha-gate"><h2>请先完成人机验证</h2><p>每次打开首页都需要重新验证；验签成功后才会显示首页内容。</p></section>' : ''}
+    <div id="homepage-content"${captchaEnabled ? ' hidden' : ''}>
     <section class="hero">
       <div class="eyebrow">Release Download Stats</div>
       <h1>下载请求自统计服务</h1>
@@ -227,6 +233,7 @@ export function renderHomePage(options: HomePageOptions): string {
       </article>
     </section>
     <footer class="foot">Release Download Stats · 自统计下载中转服务</footer>
+    </div>
   </main>
   <script>
     const escapeCell = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
