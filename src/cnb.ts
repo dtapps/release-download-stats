@@ -5,8 +5,8 @@ import type { FetchLike, ProviderStats } from "./types";
  * response envelopes can vary by API operation. Configure the exact Releases
  * API URL copied from CNB's current OpenAPI docs instead of guessing a route.
  *
- * This parser accepts either an array or a paginated object with a common
- * data/items/releases/results array. Nested release assets are summed.
+ * This parser accepts an array or a common envelope containing a release array.
+ * Pagination must be handled by the endpoint or added using CNB's verified API.
  */
 type JsonObject = Record<string, unknown>;
 
@@ -28,27 +28,17 @@ function findArray(payload: unknown): unknown[] | null {
   return null;
 }
 
-function sumAssets(value: unknown): number {
-  if (Array.isArray(value)) return value.reduce((sum, item) => sum + sumAssets(item), 0);
-  if (!isObject(value)) return 0;
-
-  let sum = 0;
-  const assets = value.assets;
-  if (Array.isArray(assets)) {
-    for (const asset of assets) {
-      if (!isObject(asset)) continue;
-      const count = asset.download_count;
-      if (typeof count === "number" && Number.isFinite(count) && count >= 0) {
-        sum += Math.trunc(count);
-      }
+function sumReleaseAssets(release: unknown): number {
+  if (!isObject(release) || !Array.isArray(release.assets)) return 0;
+  let total = 0;
+  for (const asset of release.assets) {
+    if (!isObject(asset)) continue;
+    const count = asset.download_count;
+    if (typeof count === "number" && Number.isFinite(count) && count >= 0) {
+      total += Math.trunc(count);
     }
   }
-  // Also tolerate API envelopes whose release list is nested.
-  for (const key of ["releases", "items", "results", "data"]) {
-    const nested = value[key];
-    if (Array.isArray(nested) || isObject(nested)) sum += sumAssets(nested);
-  }
-  return sum;
+  return total;
 }
 
 export async function fetchCNBDownloads(
@@ -66,12 +56,13 @@ export async function fetchCNBDownloads(
   if (!response.ok) throw new Error(`CNB API returned HTTP ${response.status}`);
 
   const payload: unknown = await response.json();
-  if (!findArray(payload)) {
+  const releases = findArray(payload);
+  if (!releases) {
     throw new Error("Unexpected CNB response: configure the Releases API endpoint whose response contains a release array");
   }
 
   return {
-    downloads: sumAssets(payload),
+    downloads: releases.reduce((sum, release) => sum + sumReleaseAssets(release), 0),
     updatedAt: new Date().toISOString(),
     source: "CNB Releases API",
   };
