@@ -1,5 +1,5 @@
 {
   "entry": "./esa/handler.js",
   "installCommand": "",
-  "buildCommand": ""
+  "buildCommand": "echo 'No build required for ESA Edge Function'"
 }
