@@ -22,6 +22,6 @@
     "esbuild": "^0.28.0"
   },
   "dependencies": {
-    "@edgeone/pages-blob": "^0.0.18"
+    "@edgeone/pages-blob": "^0.0.19"
   }
 }
